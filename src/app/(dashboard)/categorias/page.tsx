@@ -14,9 +14,16 @@ import {
 import { Plus, PencilSimple, Trash } from "@phosphor-icons/react";
 import { mockCategories, mockProducts } from "@/lib/mock-data";
 import { CATEGORY_ICON_NAMES, resolveCategoryIcon, CategoryIcon } from "@/lib/icon-map";
+import { useAuth } from "@/components/auth-provider";
 
 export default function CategoriasPage() {
+  const user = useAuth();
   const [openDialog, setOpenDialog] = useState(false);
+
+  const scopedProducts = user.role === "admin" ? mockProducts : mockProducts.filter((p) => p.area === user.area);
+  const categoriasConBienes = user.role === "admin"
+    ? mockCategories
+    : mockCategories.filter((c) => scopedProducts.some((p) => p.categoria_id === c.id));
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,25 +31,29 @@ export default function CategoriasPage() {
 
       <div className="p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <p className="text-sm text-muted-foreground">{mockCategories.length} categorías activas</p>
-          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-            <DialogTrigger asChild>
-              <Button className="h-9 gap-2 text-primary-foreground" style={{ background: "var(--primary)" }}>
+          <p className="text-sm text-muted-foreground">
+            {user.role === "admin"
+              ? `${mockCategories.length} categorías activas`
+              : `${categoriasConBienes.length} categorías con bienes en tu área`}
+          </p>
+          {user.role === "admin" && (
+            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+              <DialogTrigger render={<Button className="h-9 gap-2 text-primary-foreground" style={{ background: "var(--primary)" }} />}>
                 <Plus className="w-4 h-4" /> Nueva Categoría
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md border-border text-foreground bg-card">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">Nueva Categoría</DialogTitle>
-              </DialogHeader>
-              <CategoriaForm onClose={() => setOpenDialog(false)} />
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-md border-border text-foreground bg-card">
+                <DialogHeader>
+                  <DialogTitle className="text-foreground">Nueva Categoría</DialogTitle>
+                </DialogHeader>
+                <CategoriaForm onClose={() => setOpenDialog(false)} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {mockCategories.map((cat, i) => {
-            const productos = mockProducts.filter((p) => p.categoria_id === cat.id);
+          {categoriasConBienes.map((cat, i) => {
+            const productos = scopedProducts.filter((p) => p.categoria_id === cat.id);
             const activos = productos.filter((p) => p.estado === "activo").length;
             const alerta = productos.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado").length;
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,15 +11,17 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  FileText, Download, FileSpreadsheet, Calendar,
+  FileText, FileSpreadsheet, Calendar,
   TrendingUp, Package, AlertTriangle, DollarSign, Building2,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { mockCategories, mockProducts } from "@/lib/mock-data";
 
 const stockPorCategoria = mockCategories.map((cat) => {
   const productos = mockProducts.filter((p) => p.categoria_id === cat.id);
   return {
-    name: cat.nombre.split(" ")[0],
+    id: cat.id,
+    name: cat.nombre.split(" ").pop(),
     stock: productos.reduce((s, p) => s + p.stock_actual, 0),
     valor: productos.reduce((s, p) => s + p.stock_actual * p.precio_venta, 0),
     color: cat.color,
@@ -91,7 +94,11 @@ const REPORT_TYPES = [
   },
 ];
 
+const PERIODOS = ["Hoy", "Esta semana", "Este mes", "Este año"];
+
 export default function ReportesPage() {
+  const [periodo, setPeriodo] = useState("Este mes");
+
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Topbar title="Reportes" subtitle="Generación de informes y auditorías" />
@@ -111,9 +118,15 @@ export default function ReportesPage() {
                 <Input type="date" className="h-9 bg-muted border-border text-foreground w-40" />
               </div>
               <div className="flex gap-2 flex-wrap">
-                {["Hoy", "Esta semana", "Este mes", "Este año"].map((p) => (
+                {PERIODOS.map((p) => (
                   <Button key={p} variant="outline" size="sm"
-                    className="h-9 text-xs border-border text-muted-foreground hover:bg-accent hover:text-foreground">
+                    onClick={() => setPeriodo(p)}
+                    className={cn(
+                      "h-9 text-xs transition-all",
+                      periodo === p
+                        ? "border-primary/50 bg-accent text-foreground"
+                        : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}>
                     {p}
                   </Button>
                 ))}
@@ -124,7 +137,7 @@ export default function ReportesPage() {
 
         {/* Chart */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <Card className="xl:col-span-2 border-border" style={{ background: "var(--card)" }}>
+          <Card className="xl:col-span-2 border-border hover:shadow-md transition-shadow" style={{ background: "var(--card)" }}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground">Stock por Categoría</CardTitle>
             </CardHeader>
@@ -151,7 +164,7 @@ export default function ReportesPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {stockPorCategoria.map((cat) => (
-                <div key={cat.name}>
+                <div key={cat.id}>
                   <div className="flex justify-between mb-1">
                     <span className="text-xs text-muted-foreground">{cat.name}</span>
                     <span className="text-xs font-medium text-foreground">${cat.valor.toFixed(0)}</span>

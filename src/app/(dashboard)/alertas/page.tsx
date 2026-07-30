@@ -8,15 +8,18 @@ import { AlertTriangle, XCircle, Clock, CheckCircle } from "lucide-react";
 import { mockProducts } from "@/lib/mock-data";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { useState } from "react";
 
 export default function AlertasPage() {
   const user = useAuth();
+  // Captured once per mount instead of read inside the filter (impure at render time).
+  const [now] = useState(() => Date.now());
   const scopedProducts = user.role === "admin" ? mockProducts : mockProducts.filter((p) => p.area === user.area);
   const agotados = scopedProducts.filter((p) => p.estado === "agotado");
   const bajoStock = scopedProducts.filter((p) => p.estado === "bajo_stock");
   const porVencer = scopedProducts.filter((p) => {
     if (!p.fecha_vencimiento) return false;
-    const dias = Math.ceil((new Date(p.fecha_vencimiento).getTime() - Date.now()) / 86400000);
+    const dias = Math.ceil((new Date(p.fecha_vencimiento).getTime() - now) / 86400000);
     return dias <= 7 && dias >= 0;
   });
 
@@ -28,8 +31,6 @@ export default function AlertasPage() {
       color: "#EF4444",
       bg: "rgba(239,68,68,0.1)",
       border: "rgba(239,68,68,0.2)",
-      badge: "destructive" as const,
-      badgeText: "Agotado",
       action: "Reponer",
     },
     {
@@ -39,8 +40,6 @@ export default function AlertasPage() {
       color: "#F59E0B",
       bg: "rgba(245,158,11,0.1)",
       border: "rgba(245,158,11,0.2)",
-      badge: "secondary" as const,
-      badgeText: "Bajo",
       action: "Solicitar",
     },
     {
@@ -50,8 +49,6 @@ export default function AlertasPage() {
       color: "#A78BFA",
       bg: "rgba(167,139,250,0.1)",
       border: "rgba(167,139,250,0.2)",
-      badge: "secondary" as const,
-      badgeText: "Urgente",
       action: "Revisar",
     },
   ];
@@ -68,8 +65,10 @@ export default function AlertasPage() {
             { label: "Agotados", count: agotados.length, color: "#EF4444", bg: "rgba(239,68,68,0.15)", icon: XCircle },
             { label: "Existencias Bajas", count: bajoStock.length, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", icon: AlertTriangle },
             { label: "Garantías por Vencer", count: porVencer.length, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", icon: Clock },
-          ].map(({ label, count, color, bg, icon: Icon }) => (
-            <Card key={label} className="border-border hover:shadow-md transition-shadow" style={{ background: "var(--card)" }}>
+          ].map(({ label, count, color, bg, icon: Icon }, i) => (
+            <Card key={label}
+              className="border-border hover:shadow-md hover:-translate-y-0.5 transition-all animate-in fade-in slide-in-from-bottom-1"
+              style={{ background: "var(--card)", animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: bg }}>
                   <Icon className="w-5 h-5" style={{ color }} />
@@ -84,8 +83,10 @@ export default function AlertasPage() {
         </div>
 
         {/* Alert sections */}
-        {sections.map(({ title, items, icon: Icon, color, bg, border, badgeText, action }) => (
-          <Card key={title} className="border-border hover:shadow-md transition-shadow" style={{ background: "var(--card)" }}>
+        {sections.map(({ title, items, icon: Icon, color, bg, border, action }, si) => (
+          <Card key={title}
+            className="border-border hover:shadow-md transition-shadow animate-in fade-in slide-in-from-bottom-1"
+            style={{ background: "var(--card)", animationDelay: `${180 + si * 80}ms`, animationFillMode: "backwards" }}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -111,7 +112,7 @@ export default function AlertasPage() {
                   {items.map((product) => {
                     const pct = product.stock_maximo > 0 ? (product.stock_actual / product.stock_maximo) * 100 : 0;
                     return (
-                      <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl border"
+                      <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl border hover:brightness-110 transition-[filter]"
                         style={{ background: bg, borderColor: border }}>
                         <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
                           style={{ background: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>

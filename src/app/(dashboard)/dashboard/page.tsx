@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import {
@@ -30,7 +30,8 @@ const movimientosSemana = [
 function buildValorPorCategoria(scopedProducts: typeof mockProducts) {
   return mockCategories
     .map((cat) => ({
-      name: cat.nombre.split(" ")[0],
+      id: cat.id,
+      name: cat.nombre,
       value: scopedProducts.filter((p) => p.categoria_id === cat.id).reduce((s, p) => s + p.stock_actual * p.precio_venta, 0),
       color: cat.color,
     }))
@@ -151,12 +152,12 @@ export default function DashboardPage() {
                     ))}
                   </Pie>
                   <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }}
-                    formatter={(v: number) => [`$${v.toLocaleString()}`, ""]} />
+                    formatter={(v) => [`$${Number(v).toLocaleString()}`, ""]} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="space-y-1.5 mt-1">
                 {valorPorCategoria.map((cat) => (
-                  <div key={cat.name} className="flex items-center gap-2">
+                  <div key={cat.id} className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                     <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
                     <span className="text-xs font-medium text-foreground">${cat.value.toLocaleString()}</span>

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Search, Edit, Trash2, Eye, Package, Upload } from "lucide-react";
 import { mockProducts, mockCategories } from "@/lib/mock-data";
-import { Product, ProductStatus } from "@/lib/types";
+import { ProductStatus } from "@/lib/types";
 import { CategoryIcon } from "@/lib/icon-map";
 import { ALL_AREA_NAMES } from "@/lib/areas-list";
 import { useAuth } from "@/components/auth-provider";
@@ -80,7 +80,7 @@ function ProductosContent() {
               className="pl-9 h-9 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           </div>
 
-          <Select value={filterCat} onValueChange={setFilterCat}>
+          <Select value={filterCat} onValueChange={(v) => setFilterCat(v ?? "todas")}>
             <SelectTrigger className="w-44 h-9 bg-muted border-border text-foreground">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
@@ -94,7 +94,7 @@ function ProductosContent() {
             </SelectContent>
           </Select>
 
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v ?? "todos")}>
             <SelectTrigger className="w-36 h-9 bg-muted border-border text-foreground">
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -108,7 +108,7 @@ function ProductosContent() {
           </Select>
 
           {user.role === "admin" && (
-            <Select value={filterArea} onValueChange={setFilterArea}>
+            <Select value={filterArea} onValueChange={(v) => setFilterArea(v ?? "todas")}>
               <SelectTrigger className="w-56 h-9 bg-muted border-border text-foreground">
                 <SelectValue placeholder="Área asignada" />
               </SelectTrigger>
@@ -122,10 +122,8 @@ function ProductosContent() {
           )}
 
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-            <DialogTrigger asChild>
-              <Button className="h-9 gap-2 text-foreground" style={{ background: "var(--primary)" }}>
-                <Plus className="w-4 h-4" /> Agregar Bien
-              </Button>
+            <DialogTrigger render={<Button className="h-9 gap-2 text-foreground" style={{ background: "var(--primary)" }} />}>
+              <Plus className="w-4 h-4" /> Agregar Bien
             </DialogTrigger>
             <DialogContent className="max-w-2xl border-border text-foreground" style={{ background: "var(--card)" }}>
               <DialogHeader>
@@ -164,8 +162,9 @@ function ProductosContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((product) => (
-                  <TableRow key={product.id} className="border-border hover:bg-accent/50">
+                {filtered.map((product, i) => (
+                  <TableRow key={product.id} className="border-border hover:bg-accent/50 animate-in fade-in"
+                    style={{ animationDelay: `${Math.min(i, 12) * 30}ms`, animationFillMode: "backwards" }}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"

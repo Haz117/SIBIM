@@ -46,6 +46,10 @@ export function AppEntrance() {
           style={{ animationDelay: "150ms", animationFillMode: "backwards" }}>
           SIBIM
         </p>
+        <div className="mt-3 w-24 h-0.5 rounded-full bg-muted overflow-hidden animate-in fade-in duration-500"
+          style={{ animationDelay: "250ms", animationFillMode: "backwards" }}>
+          <div className="h-full w-1/3 rounded-full animate-splash-progress" style={{ background: "var(--primary)" }} />
+        </div>
       </div>
     </div>
   );

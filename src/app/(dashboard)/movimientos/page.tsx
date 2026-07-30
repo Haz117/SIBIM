@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowUpRight, ArrowDownRight, Activity, Plus, Search, RefreshCw,
+  ArrowUpRight, ArrowDownRight, Activity, Plus, Search, RefreshCw, ClipboardList,
 } from "lucide-react";
 import { mockMovements, mockProducts } from "@/lib/mock-data";
 import { MovementType } from "@/lib/types";
@@ -58,6 +57,7 @@ export default function MovimientosPage() {
   const [openDialog, setOpenDialog] = useState(false);
 
   const scopedMovements = user.role === "admin" ? mockMovements : mockMovements.filter((m) => m.producto?.area === user.area);
+  const scopedProducts = user.role === "admin" ? mockProducts : mockProducts.filter((p) => p.area === user.area);
 
   const summary = (["entrada", "salida", "ajuste"] as MovementType[]).map((tipo) => {
     const items = scopedMovements.filter((m) => m.tipo === tipo);
@@ -105,7 +105,7 @@ export default function MovimientosPage() {
               placeholder="Buscar producto, referencia..."
               className="pl-9 h-9 bg-muted border-border text-foreground placeholder:text-muted-foreground" />
           </div>
-          <Select value={filterTipo} onValueChange={setFilterTipo}>
+          <Select value={filterTipo} onValueChange={(v) => setFilterTipo(v ?? "todos")}>
             <SelectTrigger className="w-40 h-9 bg-muted border-border text-foreground">
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
@@ -120,16 +120,14 @@ export default function MovimientosPage() {
           <Input type="date" className="w-40 h-9 bg-muted border-border text-foreground" />
 
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-            <DialogTrigger asChild>
-              <Button className="h-9 gap-2 text-foreground" style={{ background: "var(--primary)" }}>
-                <Plus className="w-4 h-4" /> Registrar Movimiento
-              </Button>
+            <DialogTrigger render={<Button className="h-9 gap-2 text-foreground" style={{ background: "var(--primary)" }} />}>
+              <Plus className="w-4 h-4" /> Registrar Movimiento
             </DialogTrigger>
             <DialogContent className="max-w-lg border-border text-foreground" style={{ background: "var(--card)" }}>
               <DialogHeader>
                 <DialogTitle className="text-foreground">Registrar Movimiento</DialogTitle>
               </DialogHeader>
-              <MovimientoForm onClose={() => setOpenDialog(false)} />
+              <MovimientoForm onClose={() => setOpenDialog(false)} products={scopedProducts} />
             </DialogContent>
           </Dialog>
         </div>
@@ -155,10 +153,11 @@ export default function MovimientosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((mov) => {
+                {filtered.map((mov, i) => {
                   const cfg = TIPO_CONFIG[mov.tipo];
                   return (
-                    <TableRow key={mov.id} className="border-border hover:bg-accent/50">
+                    <TableRow key={mov.id} className="border-border hover:bg-accent/50 animate-in fade-in"
+                      style={{ animationDelay: `${Math.min(i, 12) * 30}ms`, animationFillMode: "backwards" }}>
                       <TableCell>
                         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${cfg.bg} ${cfg.color}`}>
                           {cfg.icon} {cfg.label}
@@ -191,6 +190,13 @@ export default function MovimientosPage() {
                 })}
               </TableBody>
             </Table>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16">
+                <ClipboardList className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-muted-foreground">No se encontraron movimientos</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -198,7 +204,7 @@ export default function MovimientosPage() {
   );
 }
 
-function MovimientoForm({ onClose }: { onClose: () => void }) {
+function MovimientoForm({ onClose, products }: { onClose: () => void; products: typeof mockProducts }) {
   const [tipo, setTipo] = useState<MovementType>("entrada");
   return (
     <div className="space-y-4">
@@ -226,7 +232,7 @@ function MovimientoForm({ onClose }: { onClose: () => void }) {
             <SelectValue placeholder="Seleccionar producto" />
           </SelectTrigger>
           <SelectContent className="border-border" style={{ background: "var(--card)" }}>
-            {mockProducts.map((p) => (
+            {products.map((p) => (
               <SelectItem key={p.id} value={p.id} className="text-foreground">
                 <span className="inline-flex items-center gap-1.5"><CategoryIcon name={p.categoria?.icono} className="w-3.5 h-3.5" /> {p.nombre} — Stock: {p.stock_actual} {p.unidad}</span>
               </SelectItem>

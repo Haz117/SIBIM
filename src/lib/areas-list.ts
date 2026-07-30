@@ -3,6 +3,8 @@ import type { AreasConfig } from "./areas.types";
 
 const data = areasData as unknown as AreasConfig;
 
+export const AREAS_DATA = data;
+
 export function getAllAreaNames(): string[] {
   const names = new Set<string>();
   names.add(data.despacho.nombre);
