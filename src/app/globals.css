@@ -182,3 +182,17 @@
     animation: none;
   }
 }
+
+/* App entrance splash — logo glow pulse */
+@keyframes logo-pulse {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(0,0,0,0)); }
+  50% { filter: drop-shadow(0 0 16px var(--primary)); }
+}
+.animate-logo-pulse {
+  animation: logo-pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-logo-pulse {
+    animation: none;
+  }
+}
