@@ -5,6 +5,7 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
@@ -117,7 +118,7 @@ export default function MovimientosPage() {
               <SelectItem value="transferencia" className="text-foreground">Transferencia</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" className="w-40 h-9 bg-muted border-border text-foreground" />
+          <DateInput className="w-40 h-9" />
 
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>
             <DialogTrigger render={<Button className="h-9 gap-2 text-foreground" style={{ background: "var(--primary)" }} />}>

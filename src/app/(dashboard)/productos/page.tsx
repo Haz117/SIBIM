@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -340,7 +341,7 @@ function ProductForm({ onClose, user }: { onClose: () => void; user: AuthUser })
         </div>
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Vencimiento de Garantía</Label>
-          <Input type="date" className="bg-muted border-border text-foreground" />
+          <DateInput />
         </div>
       </div>
 

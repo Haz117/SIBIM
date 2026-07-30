@@ -5,15 +5,15 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  FileText, FileSpreadsheet, Calendar,
-  TrendingUp, Package, AlertTriangle, DollarSign, Building2,
-} from "lucide-react";
+  FilePdf, FileXls, CalendarBlank,
+  TrendUp, Package, Warning, CurrencyDollar, Buildings,
+} from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { mockCategories, mockProducts } from "@/lib/mock-data";
 
@@ -42,7 +42,7 @@ const REPORT_TYPES = [
     id: "bienes_por_area",
     title: "Bienes por Área",
     desc: "Distribución de bienes patrimoniales por secretaría y dirección responsable",
-    icon: Building2,
+    icon: Buildings,
     color: "#EC4899",
     bg: "rgba(236,72,153,0.15)",
     tag: "Patrimonial",
@@ -51,7 +51,7 @@ const REPORT_TYPES = [
     id: "movimientos",
     title: "Reporte de Movimientos",
     desc: "Historial de entradas, salidas y ajustes por período",
-    icon: TrendingUp,
+    icon: TrendUp,
     color: "#10B981",
     bg: "rgba(16,185,129,0.15)",
     tag: "Trazabilidad",
@@ -60,7 +60,7 @@ const REPORT_TYPES = [
     id: "stock_bajo",
     title: "Alertas de Stock",
     desc: "Productos con stock bajo o agotados que requieren reabastecimiento",
-    icon: AlertTriangle,
+    icon: Warning,
     color: "#F59E0B",
     bg: "rgba(245,158,11,0.15)",
     tag: "Operativo",
@@ -69,7 +69,7 @@ const REPORT_TYPES = [
     id: "valoracion",
     title: "Valoración de Inventario",
     desc: "Valor económico del inventario por categoría y total",
-    icon: DollarSign,
+    icon: CurrencyDollar,
     color: "#3B82F6",
     bg: "rgba(59,130,246,0.15)",
     tag: "Financiero",
@@ -78,7 +78,7 @@ const REPORT_TYPES = [
     id: "auditoria",
     title: "Reporte de Auditoría",
     desc: "Informe completo para auditorías del estado: movimientos, ajustes y responsables",
-    icon: FileText,
+    icon: FilePdf,
     color: "#EF4444",
     bg: "rgba(239,68,68,0.15)",
     tag: "Estado",
@@ -87,7 +87,7 @@ const REPORT_TYPES = [
     id: "vencimientos",
     title: "Garantías por Vencer",
     desc: "Bienes con garantía próxima a vencer en los próximos 30 días",
-    icon: Calendar,
+    icon: CalendarBlank,
     color: "#A78BFA",
     bg: "rgba(167,139,250,0.15)",
     tag: "Control",
@@ -111,11 +111,11 @@ export default function ReportesPage() {
             <div className="flex flex-wrap items-end gap-4">
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">Fecha inicio</Label>
-                <Input type="date" className="h-9 bg-muted border-border text-foreground w-40" />
+                <DateInput className="h-9 w-40" />
               </div>
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs">Fecha fin</Label>
-                <Input type="date" className="h-9 bg-muted border-border text-foreground w-40" />
+                <DateInput className="h-9 w-40" />
               </div>
               <div className="flex gap-2 flex-wrap">
                 {PERIODOS.map((p) => (
@@ -210,11 +210,11 @@ export default function ReportesPage() {
                     <Button size="sm"
                       className="flex-1 h-8 text-xs gap-1.5 text-foreground"
                       style={{ background: "var(--primary)" }}>
-                      <FileText className="w-3.5 h-3.5" /> PDF
+                      <FilePdf className="w-3.5 h-3.5" /> PDF
                     </Button>
                     <Button size="sm" variant="outline"
                       className="flex-1 h-8 text-xs gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground">
-                      <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+                      <FileXls className="w-3.5 h-3.5" /> Excel
                     </Button>
                   </div>
                 </CardContent>
@@ -226,7 +226,7 @@ export default function ReportesPage() {
         {/* Audit note */}
         <Card className="border-amber-500/20" style={{ background: "rgba(245,158,11,0.05)" }}>
           <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <Warning className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-amber-400">Nota para Auditorías del Estado</p>
               <p className="text-xs text-amber-400/70 mt-1">
