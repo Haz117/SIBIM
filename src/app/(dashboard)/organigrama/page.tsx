@@ -6,10 +6,10 @@ import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { MagnifyingGlass, CaretDown, Crown, ShieldCheck, Buildings, ArrowRight, Star, type Icon } from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretDown, Crown, ShieldCheck, Buildings, ArrowRight, Star, X, type Icon } from "@phosphor-icons/react";
 import { getAreaIcon } from "@/lib/areas-icons";
 import { cn } from "@/lib/utils";
-import { productsByArea } from "@/lib/mock-data";
+import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
 import { initials } from "@/lib/format";
@@ -44,7 +44,8 @@ function AreaRow({ name, icon: AreaIcon, expanded, onToggle, dense, isOwn }: {
   dense?: boolean;
   isOwn?: boolean;
 }) {
-  const items = useMemo(() => productsByArea(name), [name]);
+  const { products } = useData();
+  const items = useMemo(() => products.filter((p) => p.area === name), [products, name]);
 
   return (
     <div className={cn(
@@ -77,7 +78,7 @@ function AreaRow({ name, icon: AreaIcon, expanded, onToggle, dense, isOwn }: {
       </button>
 
       {expanded && (
-        <div className={cn("space-y-1 animate-in fade-in slide-in-from-top-1 duration-150", dense ? "pl-6 pr-2 pb-2 pt-0.5" : "px-3 pb-3")}>
+        <div className={cn("space-y-1 animate-in fade-in slide-in-from-top-2 duration-200 ease-out", dense ? "pl-6 pr-2 pb-2 pt-0.5" : "px-3 pb-3")}>
           {items.length === 0 ? (
             <p className="text-[11px] text-muted-foreground italic py-1">Sin bienes asignados</p>
           ) : (
@@ -135,6 +136,8 @@ export default function OrganigramaPage() {
 
   const otrasVisibles = q ? data.otras_areas.filter((a) => matches(a, q)) : data.otras_areas;
 
+  const noResults = !!q && !despachoVisible && secretariasFiltradas.length === 0 && !contraloriaVisible && otrasVisibles.length === 0;
+
   function toggle(key: string) {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   }
@@ -156,9 +159,37 @@ export default function OrganigramaPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar secretaría, dirección o titular..."
-            className="pl-9 h-9 text-sm bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50"
+            className="pl-9 pr-9 h-9 text-sm bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
+
+        {/* Empty state when search yields no results */}
+        {noResults && (
+          <div className="flex flex-col items-center justify-center py-20 gap-3 animate-in fade-in duration-200">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-muted">
+              <MagnifyingGlass className="w-7 h-7 text-muted-foreground/50" weight="duotone" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Sin resultados para "{q}"</p>
+            <p className="text-xs text-muted-foreground">Intenta con el nombre de la secretaría, dirección o titular</p>
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="inline-flex items-center gap-1.5 mt-1 text-xs font-medium text-primary hover:underline"
+            >
+              <X className="w-3 h-3" /> Limpiar búsqueda
+            </button>
+          </div>
+        )}
 
         {/* Despacho de la Presidencia */}
         {despachoVisible && (
@@ -259,7 +290,7 @@ export default function OrganigramaPage() {
                   </button>
 
                   {isOpen && (
-                    <CardContent className="pt-0 pb-4 px-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <CardContent className="pt-0 pb-4 px-4 animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
                       <div className="h-px bg-border mb-3" />
                       {sec.direcciones.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic">Sin direcciones registradas</p>

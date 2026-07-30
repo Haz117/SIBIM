@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useMemo } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,26 +11,19 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 import {
-  Package, TrendingUp, AlertTriangle, XCircle,
-  ArrowUpRight, ArrowDownRight, DollarSign, Activity,
-} from "lucide-react";
-import { mockProducts, mockMovements, mockStats, mockCategories } from "@/lib/mock-data";
+  Package, TrendUp, WarningOctagon, XCircle,
+  ArrowUpRight, ArrowDownRight, CurrencyDollar, Pulse, ArrowRight,
+} from "@phosphor-icons/react";
+import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
 import type { AuthUser } from "@/lib/auth-users";
+import type { Product, Category, Movement } from "@/lib/types";
 
-const movimientosSemana = [
-  { dia: "Lun", entradas: 12, salidas: 8 },
-  { dia: "Mar", entradas: 5, salidas: 15 },
-  { dia: "Mié", entradas: 20, salidas: 10 },
-  { dia: "Jue", entradas: 8, salidas: 18 },
-  { dia: "Vie", entradas: 15, salidas: 22 },
-  { dia: "Sáb", entradas: 30, salidas: 25 },
-  { dia: "Dom", entradas: 3, salidas: 5 },
-];
+const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-function buildValorPorCategoria(scopedProducts: typeof mockProducts) {
-  return mockCategories
+function buildValorPorCategoria(scopedProducts: Product[], categories: Category[]) {
+  return categories
     .map((cat) => ({
       id: cat.id,
       name: cat.nombre,
@@ -38,15 +33,37 @@ function buildValorPorCategoria(scopedProducts: typeof mockProducts) {
     .filter((c) => c.value > 0);
 }
 
-function buildStatCards(user: AuthUser, scopedProducts: typeof mockProducts, scopedMovements: typeof mockMovements) {
+function buildStatCards(
+  user: AuthUser,
+  scopedProducts: Product[],
+  scopedMovements: Movement[],
+  allProducts: Product[],
+  allMovements: Movement[],
+  allCategories: Category[]
+) {
   if (user.role === "admin") {
+    const totalProductos = allProducts.length;
+    const valorTotalInventario = allProducts.reduce((s, p) => s + p.stock_actual * p.precio_venta, 0);
+    const productosBajoStock = allProducts.filter((p) => p.estado === "bajo_stock").length;
+    const productosAgotados = allProducts.filter((p) => p.estado === "agotado").length;
+    const movimientosHoy = allMovements.filter(
+      (m) => new Date(m.created_at).toDateString() === new Date().toDateString()
+    ).length;
+    const categoriasCount = allCategories.length;
+    const now = new Date();
+    const nuevosEsteMes = allProducts.filter((p) => {
+      const d = new Date(p.created_at);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+    const unidadesTotales = allProducts.reduce((s, p) => s + p.stock_actual, 0);
+
     return [
-      { label: "Total de Bienes", value: mockStats.total_productos, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: "+2 este mes", up: true },
-      { label: "Valor Patrimonial", value: `$${mockStats.valor_total_inventario.toLocaleString()}`, icon: DollarSign, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: "+8.2% vs ayer", up: true },
-      { label: "Existencias Bajas", value: mockStats.productos_bajo_stock, icon: AlertTriangle, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false },
-      { label: "Agotados", value: mockStats.productos_agotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false },
-      { label: "Movimientos Hoy", value: mockStats.movimientos_hoy, icon: Activity, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: `${mockMovements.length} operaciones`, up: true },
-      { label: "Categorías", value: mockStats.categorias, icon: TrendingUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "Todas activas", up: true },
+      { label: "Total de Bienes", value: totalProductos, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: nuevosEsteMes > 0 ? `+${nuevosEsteMes} este mes` : "Sin altas este mes", up: nuevosEsteMes > 0, href: "/productos" },
+      { label: "Valor Patrimonial", value: `$${valorTotalInventario.toLocaleString()}`, icon: CurrencyDollar, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: `${unidadesTotales.toLocaleString()} unidades`, up: true, href: "/reportes" },
+      { label: "Existencias Bajas", value: productosBajoStock, icon: WarningOctagon, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false, href: "/alertas" },
+      { label: "Agotados", value: productosAgotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
+      { label: "Movimientos Hoy", value: movimientosHoy, icon: Pulse, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: `${allMovements.length} operaciones`, up: true, href: "/movimientos" },
+      { label: "Categorías", value: categoriasCount, icon: TrendUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "Todas activas", up: true, href: "/categorias" },
     ];
   }
 
@@ -56,22 +73,39 @@ function buildStatCards(user: AuthUser, scopedProducts: typeof mockProducts, sco
   const categorias = new Set(scopedProducts.map((p) => p.categoria_id)).size;
 
   return [
-    { label: "Bienes de mi Área", value: scopedProducts.length, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: user.area ?? "", up: true },
-    { label: "Valor de mi Área", value: `$${valor.toLocaleString()}`, icon: DollarSign, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: "Valor actual", up: true },
-    { label: "Existencias Bajas", value: bajoStock, icon: AlertTriangle, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false },
-    { label: "Agotados", value: agotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false },
-    { label: "Movimientos", value: scopedMovements.length, icon: Activity, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: "Registrados", up: true },
-    { label: "Categorías", value: categorias, icon: TrendingUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "En uso", up: true },
+    { label: "Bienes de mi Área", value: scopedProducts.length, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: user.area ?? "", up: true, href: "/productos" },
+    { label: "Valor de mi Área", value: `$${valor.toLocaleString()}`, icon: CurrencyDollar, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: "Valor actual", up: true, href: "/reportes" },
+    { label: "Existencias Bajas", value: bajoStock, icon: WarningOctagon, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false, href: "/alertas" },
+    { label: "Agotados", value: agotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
+    { label: "Movimientos", value: scopedMovements.length, icon: Pulse, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: "Registrados", up: true, href: "/movimientos" },
+    { label: "Categorías", value: categorias, icon: TrendUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "En uso", up: true, href: "/categorias" },
   ];
 }
 
 export default function DashboardPage() {
   const user = useAuth();
-  const scopedProducts = user.role === "admin" ? mockProducts : mockProducts.filter((p) => p.area === user.area);
-  const scopedMovements = user.role === "admin" ? mockMovements : mockMovements.filter((m) => m.producto?.area === user.area);
-  const STAT_CARDS = buildStatCards(user, scopedProducts, scopedMovements);
-  const valorPorCategoria = buildValorPorCategoria(scopedProducts);
+  const { products, movements, categories } = useData();
+
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
+  const scopedMovements = user.role === "admin" ? movements : movements.filter((m) => m.producto?.area === user.area);
+  const STAT_CARDS = buildStatCards(user, scopedProducts, scopedMovements, products, movements, categories);
+  const valorPorCategoria = buildValorPorCategoria(scopedProducts, categories);
   const bajosStock = scopedProducts.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado");
+
+  const movimientosSemana = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - 6 + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const dayMovs = scopedMovements.filter((m) => m.created_at.slice(0, 10) === dateStr);
+      return {
+        dia: DAY_LABELS[d.getDay()],
+        entradas: dayMovs.filter((m) => m.tipo === "entrada").reduce((s, m) => s + m.cantidad, 0),
+        salidas: dayMovs.filter((m) => m.tipo === "salida").reduce((s, m) => s + m.cantidad, 0),
+      };
+    });
+  }, [scopedMovements]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
@@ -81,23 +115,32 @@ export default function DashboardPage() {
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-          {STAT_CARDS.map(({ label, value, icon: Icon, color, change, up }, i) => (
-            <Card key={label}
-              className="border-border relative overflow-hidden group bg-card hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in slide-in-from-bottom-1"
-              style={{ animationDelay: `${i * 50}ms`, animationFillMode: "backwards" }}>
-              <div className="absolute inset-y-0 left-0 w-1" style={{ background: color }} />
-              <CardContent className="p-4 pl-5">
-                <div className="flex items-start justify-between mb-2">
-                  <Icon className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  {up
-                    ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
-                    : <ArrowDownRight className="w-3.5 h-3.5 text-amber-500" />}
-                </div>
-                <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
-                <p className="text-xs mt-1.5 text-muted-foreground">{label}</p>
-                <p className="text-xs mt-1 font-medium" style={{ color: up ? "#10B981" : "#F59E0B" }}>{change}</p>
-              </CardContent>
-            </Card>
+          {STAT_CARDS.map(({ label, value, icon: Icon, color, bg, change, up, href }, i) => (
+            <Link key={label} href={href} className="block group/card">
+              <Card
+                className="border-border relative overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-200 animate-in fade-in slide-in-from-bottom-1 cursor-pointer"
+                style={{
+                  animationDelay: `${i * 50}ms`,
+                  animationFillMode: "backwards",
+                  background: `linear-gradient(135deg, var(--card) 40%, ${bg})`,
+                }}>
+                <div className="absolute inset-y-0 left-0 w-1 rounded-l-lg" style={{ background: color }} />
+                <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full opacity-10 blur-xl" style={{ background: color }} />
+                <CardContent className="p-4 pl-5 relative">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: bg }}>
+                      <Icon className="w-3.5 h-3.5 transition-colors" style={{ color }} />
+                    </div>
+                    {up
+                      ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+                      : <ArrowDownRight className="w-3.5 h-3.5 text-amber-500" />}
+                  </div>
+                  <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+                  <p className="text-xs mt-1.5 text-muted-foreground">{label}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: up ? "#10B981" : "#F59E0B" }}>{change}</p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 
@@ -176,11 +219,25 @@ export default function DashboardPage() {
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground">Alertas de Stock</CardTitle>
-                <Badge variant="destructive" className="text-xs">{bajosStock.length} alertas</Badge>
+                <div className="flex items-center gap-2">
+                  {bajosStock.length > 0
+                    ? <Badge variant="destructive" className="text-xs">{bajosStock.length} alertas</Badge>
+                    : <Badge className="text-xs border-0 bg-emerald-500/20 text-emerald-500">Sin alertas</Badge>
+                  }
+                  <Link href="/alertas" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    Ver todas <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {bajosStock.map((p) => {
+              {bajosStock.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <span className="text-2xl">✓</span>
+                  <p className="text-sm font-medium text-emerald-500">Sin alertas de stock</p>
+                  <p className="text-xs text-muted-foreground">Todas las existencias están en nivel adecuado</p>
+                </div>
+              ) : bajosStock.slice(0, 5).map((p) => {
                 const pct = p.stock_maximo > 0 ? (p.stock_actual / p.stock_maximo) * 100 : 0;
                 const isAgotado = p.estado === "agotado";
                 return (
@@ -209,10 +266,21 @@ export default function DashboardPage() {
           {/* Últimos movimientos */}
           <Card className="border-border hover:shadow-md transition-shadow" style={{ background: "var(--card)" }}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-foreground">Últimos Movimientos</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-foreground">Últimos Movimientos</CardTitle>
+                <Link href="/movimientos" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  Ver todos <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2">
-              {scopedMovements.map((mov) => (
+              {scopedMovements.length === 0 && (
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <p className="text-sm text-muted-foreground">Sin movimientos registrados</p>
+                  <p className="text-xs text-muted-foreground/60">Los movimientos aparecerán aquí en tiempo real</p>
+                </div>
+              )}
+              {scopedMovements.slice(0, 5).map((mov) => (
                 <div key={mov.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                     mov.tipo === "entrada" ? "bg-emerald-500/15" :
@@ -222,7 +290,7 @@ export default function DashboardPage() {
                       ? <ArrowUpRight className="w-4 h-4 text-emerald-400" />
                       : mov.tipo === "salida"
                       ? <ArrowDownRight className="w-4 h-4 text-red-400" />
-                      : <Activity className="w-4 h-4 text-purple-400" />}
+                      : <Pulse className="w-4 h-4 text-purple-400" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{mov.producto?.nombre}</p>

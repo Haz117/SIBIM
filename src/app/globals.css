@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -99,11 +99,11 @@
 
 /* Dark theme — opt-in via toggle */
 .dark {
-  --background: oklch(0.1 0.035 293);
+  --background: oklch(0.08 0.03 293);
   --foreground: oklch(0.97 0.01 293);
-  --card: oklch(0.15 0.04 293);
+  --card: oklch(0.19 0.05 293);
   --card-foreground: oklch(0.97 0.01 293);
-  --popover: oklch(0.15 0.04 293);
+  --popover: oklch(0.19 0.05 293);
   --popover-foreground: oklch(0.97 0.01 293);
   --primary: oklch(0.54 0.261 293.3);
   --primary-foreground: oklch(0.98 0.01 293);
@@ -123,7 +123,7 @@
   --chart-4: oklch(0.65 0.2 50);
   --chart-5: oklch(0.6 0.24 20);
   --radius: 0.75rem;
-  --sidebar: oklch(0.13 0.04 293);
+  --sidebar: oklch(0.11 0.04 293);
   --sidebar-foreground: oklch(0.97 0.01 293);
   --sidebar-primary: oklch(0.54 0.261 293.3);
   --sidebar-primary-foreground: oklch(0.98 0.01 293);
@@ -139,9 +139,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   html {
     @apply font-sans;
+    letter-spacing: -0.01em;
+  }
+  /* Tighten headings a bit more for Plus Jakarta Sans */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.025em;
+  }
+  /* Mono resets */
+  code, kbd, pre, [class*="font-mono"] {
+    letter-spacing: 0;
   }
 }
 
@@ -197,16 +207,29 @@
   }
 }
 
-@keyframes splash-progress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
-}
-.animate-splash-progress {
-  animation: splash-progress 1s ease-in-out infinite;
+/* progress fill — used by AppEntrance */
+@keyframes fill-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .animate-splash-progress {
-    animation: none;
-    width: 100%;
+  [style*="fill-progress"] {
+    animation: none !important;
+    width: 100% !important;
   }
+}
+
+/* Error shake */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  40%       { transform: translateX(5px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+.animate-shake {
+  animation: shake 0.45s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-shake { animation: none; }
 }

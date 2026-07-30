@@ -15,19 +15,22 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { mockProducts, mockStats } from "@/lib/mock-data";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useData } from "@/lib/store";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/components/auth-provider";
+import { useUI } from "@/components/layout/ui-context";
 import { logout } from "@/lib/auth-actions";
 import { initials } from "@/lib/format";
 
-export function Sidebar() {
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const user = useAuth();
+  const { products, profileName, avatarUrl } = useData();
 
-  const scopedProducts = user.role === "admin" ? mockProducts : mockProducts.filter((p) => p.area === user.area);
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
   const bienesEnAlerta = scopedProducts.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado").length;
-  const totalBienes = user.role === "admin" ? mockStats.total_productos : scopedProducts.length;
+  const totalBienes = scopedProducts.length;
 
   const navGroups = [
     {
@@ -40,10 +43,10 @@ export function Sidebar() {
     {
       label: "Inventario",
       items: [
-        { href: "/productos", label: "Productos", icon: Package, badge: String(totalBienes) },
+        { href: "/productos", label: "Productos", icon: Package, badge: totalBienes > 0 ? String(totalBienes) : undefined },
         { href: "/categorias", label: "Categorías", icon: FolderOpen },
         { href: "/movimientos", label: "Movimientos", icon: ArrowsLeftRight },
-        { href: "/alertas", label: "Alertas", icon: Warning, badge: String(bienesEnAlerta), badgeColor: "destructive" as const },
+        { href: "/alertas", label: "Alertas", icon: Warning, badge: bienesEnAlerta > 0 ? String(bienesEnAlerta) : undefined, badgeColor: "destructive" as const },
         { href: "/reportes", label: "Reportes", icon: ChartBar },
       ],
     },
@@ -56,10 +59,9 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 flex flex-col z-50 bg-sidebar border-r border-sidebar-border">
-
+    <div className="flex flex-col h-full">
       {/* Institutional branding */}
-      <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border">
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-sidebar-border flex-shrink-0">
         <Logo size={36} />
         <div className="min-w-0">
           <p className="font-bold text-sm text-sidebar-foreground truncate">SIBIM</p>
@@ -78,6 +80,7 @@ export function Sidebar() {
               const isActive = pathname === href || pathname.startsWith(href + "/");
               return (
                 <Link key={href} href={href}
+                  onClick={onNavigate}
                   className={cn(
                     "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group",
                     isActive
@@ -107,14 +110,16 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border flex-shrink-0">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-sidebar-accent transition-all group">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground text-xs font-bold flex-shrink-0"
-            style={{ background: "var(--primary)" }}>
-            {initials(user.nombre)}
+          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-primary-foreground text-xs font-bold flex-shrink-0"
+            style={{ background: avatarUrl ? "transparent" : "var(--primary)" }}>
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              : initials(profileName ?? user.nombre)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">{user.nombre}</p>
+            <p className="text-sm font-medium text-sidebar-foreground truncate">{profileName ?? user.nombre}</p>
             <p className="text-xs text-muted-foreground truncate">{user.area ?? "Superusuario"}</p>
           </div>
           <form action={logout}>
@@ -125,6 +130,28 @@ export function Sidebar() {
           </form>
         </div>
       </div>
-    </aside>
+    </div>
+  );
+}
+
+export function Sidebar() {
+  const { sidebarOpen, setSidebarOpen } = useUI();
+
+  return (
+    <>
+      {/* Desktop fixed sidebar */}
+      <aside className="hidden lg:flex fixed left-0 top-0 h-full w-64 flex-col z-50 bg-sidebar border-r border-sidebar-border">
+        <SidebarNav />
+      </aside>
+
+      {/* Mobile drawer */}
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetContent side="left" showCloseButton={false}
+          className="p-0 bg-sidebar border-sidebar-border"
+          style={{ width: "16rem" }}>
+          <SidebarNav onNavigate={() => setSidebarOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

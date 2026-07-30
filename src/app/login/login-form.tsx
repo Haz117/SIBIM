@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useEffect, useRef } from "react";
 import { useFormStatus } from "react-dom";
 import {
   Eye, EyeSlash, SignIn, UsersThree, WarningCircle, CaretDown, SpinnerGap,
@@ -65,6 +65,14 @@ export function LoginForm() {
   const [showDemo, setShowDemo] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorKey, setErrorKey] = useState(0);
+  const prevErrorRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (state?.error && state.error !== prevErrorRef.current) {
+      prevErrorRef.current = state.error;
+      setErrorKey((k) => k + 1);
+    }
+  }, [state?.error]);
 
   function fillDemo(u: string, p: string) {
     setUsername(u);
@@ -100,8 +108,10 @@ export function LoginForm() {
             <p className="text-sm text-muted-foreground mt-1">Ingresa con tu cuenta institucional.</p>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl shadow-lg p-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
+          <div className="relative bg-card border border-border rounded-2xl shadow-xl p-6 animate-in fade-in slide-in-from-bottom-3 duration-700"
             style={{ animationDelay: "120ms", animationFillMode: "backwards" }}>
+            <div className="absolute inset-x-0 top-0 h-px rounded-t-2xl"
+              style={{ background: "linear-gradient(90deg, transparent, var(--primary), transparent)" }} />
             <form action={formAction} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="username" className="text-muted-foreground text-xs">Usuario</Label>
@@ -144,8 +154,9 @@ export function LoginForm() {
               </div>
 
               {state?.error && (
-                <div className="flex items-center gap-2 text-xs text-red-500 bg-red-500/10 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-1">
-                  <WarningCircle className="w-4 h-4 flex-shrink-0" />
+                <div key={errorKey}
+                  className="animate-shake flex items-center gap-2 text-xs text-red-500 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  <WarningCircle className="w-4 h-4 flex-shrink-0" weight="fill" />
                   {state.error}
                 </div>
               )}
@@ -168,7 +179,7 @@ export function LoginForm() {
             </button>
 
             {showDemo && (
-              <div className="bg-card border border-border rounded-xl p-2 max-h-64 overflow-y-auto space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <div className="bg-card border border-border rounded-xl p-2 max-h-64 overflow-y-auto space-y-2 animate-in fade-in zoom-in-95 duration-200">
                 <p className="text-[10px] text-muted-foreground px-2 pt-1">
                   Cuentas de demostración — sustituir por autenticación real en producción.
                 </p>
@@ -190,6 +201,12 @@ export function LoginForm() {
             )}
           </div>
         </div>
+
+          {/* Footer */}
+          <p className="mt-6 text-center text-[10px] text-muted-foreground/60 animate-in fade-in duration-700"
+            style={{ animationDelay: "350ms", animationFillMode: "backwards" }}>
+            H. Ayuntamiento Municipal · SIBIM · Sistema Integral de Bienes Municipales
+          </p>
       </div>
     </div>
   );
