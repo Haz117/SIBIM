@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 interface TopbarProps {
   title: string;
@@ -20,10 +21,14 @@ export function Topbar({ title, subtitle }: TopbarProps) {
   return (
     <header className="h-16 flex items-center justify-between px-6 border-b border-border sticky top-0 z-40 bg-background/85 backdrop-blur-sm">
 
-      {/* Title */}
-      <div>
-        <h1 className="text-lg font-bold text-foreground leading-tight">{title}</h1>
-        <p className="text-xs capitalize text-muted-foreground">{subtitle || fecha}</p>
+      {/* Logo + Title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <Logo size={30} className="flex-shrink-0" />
+        <div className="hidden sm:block w-px h-7 bg-border flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-foreground leading-tight truncate">{title}</h1>
+          <p className="text-xs capitalize text-muted-foreground truncate">{subtitle || fecha}</p>
+        </div>
       </div>
 
       {/* Actions */}
