@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect, useCallback } from "react"
+import { useRef, useState, useCallback } from "react"
 import { CalendarBlank, X } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 
@@ -23,15 +23,18 @@ export function DateInput({ value, onChange, className, disabled }: DateInputPro
   const yearRef = useRef<HTMLInputElement>(null)
   const nativeRef = useRef<HTMLInputElement>(null)
 
-  // Sync from external controlled value
-  useEffect(() => {
+  // Sync from external controlled value — adjusted during render (not an effect),
+  // by tracking the previous prop value, per React's "adjusting state" pattern.
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
     if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const [y, m, d] = value.split("-")
       setYear(y); setMonth(m); setDay(d)
     } else if (!value) {
       setDay(""); setMonth(""); setYear("")
     }
-  }, [value])
+  }
 
   const emit = useCallback((d: string, m: string, y: string) => {
     if (d.length === 2 && m.length === 2 && y.length === 4) {

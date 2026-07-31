@@ -16,9 +16,11 @@ import {
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useData } from "@/lib/store";
+import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useToast } from "@/components/ui/toast";
 import { downloadExcel, printReport } from "@/lib/export";
-import type { Product, Movement, Category } from "@/lib/types";
+import type { Movement } from "@/lib/types";
 
 const PERIODOS = ["Hoy", "Esta semana", "Este mes", "Este año"];
 
@@ -43,11 +45,17 @@ function filterByPeriodo(movements: Movement[], periodo: string, fechaInicio: st
 }
 
 export default function ReportesPage() {
-  const { products, categories, movements } = useData();
+  const user = useAuth();
+  const { products: allProducts, categories, movements: allMovements } = useData();
   const { toast } = useToast();
   const [periodo, setPeriodo] = useState("Este mes");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
+
+  // Todos los reportes se generan solo con los bienes/movimientos del alcance del usuario.
+  const products = user.role === "admin" ? allProducts : allProducts.filter((p) => isAreaAccessible(user, p.area));
+  const movements = user.role === "admin" ? allMovements : allMovements.filter((m) => isAreaAccessible(user, m.producto?.area));
+  const [now] = useState(() => Date.now());
 
   const stockPorCategoria = useMemo(() =>
     categories.map((cat) => {
@@ -228,7 +236,7 @@ export default function ReportesPage() {
       id: "vencimientos", title: "Garantías por Vencer",
       desc: "Bienes con garantía próxima a vencer en los próximos 30 días",
       icon: CalendarBlank, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", tag: "Control",
-      count: `${products.filter((p) => { if (!p.fecha_vencimiento) return false; const d = Math.ceil((new Date(p.fecha_vencimiento).getTime() - Date.now()) / 86400000); return d <= 30; }).length} bienes`,
+      count: `${products.filter((p) => { if (!p.fecha_vencimiento) return false; const d = Math.ceil((new Date(p.fecha_vencimiento).getTime() - now) / 86400000); return d <= 30; }).length} bienes`,
       onPdf: () => genVencimientos("pdf"), onExcel: () => genVencimientos("excel"),
     },
   ];

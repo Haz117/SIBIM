@@ -18,6 +18,7 @@ import { AUTH_USERS } from "@/lib/auth-users";
 import { logout } from "@/lib/auth-actions";
 import { initials } from "@/lib/format";
 import { getAreaIcon } from "@/lib/areas-icons";
+import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 
 export default function ConfiguracionPage() {
@@ -30,9 +31,26 @@ export default function ConfiguracionPage() {
   const [nameInput, setNameInput] = useState(profileName ?? user.nombre);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // `theme` from next-themes is unresolved during SSR/first paint (it only reads
+  // localStorage after mount). Gating the selected-state on `mounted` keeps the
+  // server and first client render identical, avoiding a hydration mismatch —
+  // the real selection appears a tick later, which is a normal post-mount update.
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setNameInput(profileName ?? user.nombre);
-  }, [profileName, user.nombre]);
+    // Genuine sync with an external system (has hydration completed?) — there's
+    // no render-time signal for "we're now on the client past hydration", so
+    // this one-shot effect is the correct tool, not a cascading-render smell.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  // Sync the editable field from the store — adjusted during render (not an effect).
+  const [prevSourceName, setPrevSourceName] = useState(profileName ?? user.nombre);
+  const sourceName = profileName ?? user.nombre;
+  if (sourceName !== prevSourceName) {
+    setPrevSourceName(sourceName);
+    setNameInput(sourceName);
+  }
 
   function saveName() {
     const trimmed = nameInput.trim();
@@ -43,20 +61,23 @@ export default function ConfiguracionPage() {
     setEditingName(false);
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast("La imagen no puede superar 2 MB", "error");
+    if (file.size > 8 * 1024 * 1024) {
+      toast("La imagen no puede superar 8 MB", "error");
       e.target.value = "";
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setAvatarUrl(ev.target?.result as string);
+    try {
+      const url = await compressImage(file, 320, 0.85);
+      setAvatarUrl(url);
       toast("Foto de perfil actualizada");
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   return (
@@ -140,6 +161,16 @@ export default function ConfiguracionPage() {
                       <Crown className="w-3 h-3" weight="fill" /> Superusuario
                     </Badge>
                   )}
+                  {user.role === "secretario" && (
+                    <Badge className="text-xs gap-1 border-0 bg-accent text-primary">
+                      <ShieldCheck className="w-3 h-3" weight="fill" /> Secretario/a
+                    </Badge>
+                  )}
+                  {user.role === "direccion" && (
+                    <Badge variant="secondary" className="text-xs gap-1 border-0">
+                      <Briefcase className="w-3 h-3" /> Dirección
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                   <Briefcase className="w-3.5 h-3.5" /> {user.cargo}
@@ -197,12 +228,12 @@ export default function ConfiguracionPage() {
                   onClick={() => setTheme(value)}
                   className={cn(
                     "flex flex-col items-center gap-1.5 rounded-xl border py-3 text-xs transition-all",
-                    theme === value
+                    mounted && theme === value
                       ? "border-primary bg-accent text-foreground"
                       : "border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                 >
-                  <Icon className="w-4 h-4" weight={theme === value ? "fill" : "regular"} />
+                  <Icon className="w-4 h-4" weight={mounted && theme === value ? "fill" : "regular"} />
                   {label}
                 </button>
               ))}
@@ -222,6 +253,12 @@ export default function ConfiguracionPage() {
             <CardContent className="pt-0 space-y-1">
               {AUTH_USERS.map((u) => {
                 const AreaIcon = u.area ? getAreaIcon(u.area) : Crown;
+                const roleLabel = u.role === "admin" ? "Superusuario" : u.role === "secretario" ? "Secretario/a" : "Dirección";
+                const roleClass = u.role === "admin"
+                  ? "text-primary-foreground"
+                  : u.role === "secretario"
+                  ? "bg-accent text-primary"
+                  : "bg-muted text-muted-foreground";
                 return (
                   <div key={u.id} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-accent/50 transition-colors">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 bg-accent text-primary">
@@ -230,9 +267,13 @@ export default function ConfiguracionPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-foreground truncate">{u.nombre}</p>
                       <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                        <AreaIcon className="w-3 h-3 flex-shrink-0" /> {u.area ?? "Superusuario"}
+                        <AreaIcon className="w-3 h-3 flex-shrink-0" /> {u.area ?? "Todas las áreas"}
                       </p>
                     </div>
+                    <Badge className={cn("text-[10px] border-0 flex-shrink-0", roleClass)}
+                      style={u.role === "admin" ? { background: "var(--primary)" } : undefined}>
+                      {roleLabel}
+                    </Badge>
                     <span className="text-xs font-mono text-muted-foreground flex-shrink-0">{u.username}</span>
                   </div>
                 );

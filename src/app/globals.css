@@ -233,3 +233,14 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-shake { animation: none; }
 }
+
+/* Respect reduced-motion preference for Tailwind's animate-in entrance utilities
+   (tw-animate-css) used throughout for stagger/fade/slide effects. Hover and
+   active-state transitions are untouched since they carry functional feedback. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-in"],
+  [class*="animate-out"] {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+}

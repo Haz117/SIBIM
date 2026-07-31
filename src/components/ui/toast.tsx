@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((p) => [...p, { id, message, variant, action }])
     const ttl = action ? 6000 : 3800
     setTimeout(() => dismiss(id), ttl)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <Ctx.Provider value={{ toast }}>

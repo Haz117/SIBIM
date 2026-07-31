@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 import { useData } from "@/lib/store";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useUI } from "@/components/layout/ui-context";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +42,7 @@ export function CommandPalette() {
 
   const scopedProducts = user.role === "admin"
     ? products
-    : products.filter((p) => p.area === user.area);
+    : products.filter((p) => isAreaAccessible(user, p.area));
 
   const filteredPages = useMemo(() => {
     if (!query) return PAGES;
@@ -57,10 +58,12 @@ export function CommandPalette() {
       .slice(0, 5);
   }, [query, scopedProducts]);
 
-  // Reset selection whenever query changes
-  useEffect(() => {
+  // Reset selection whenever query changes — adjusted during render (not an effect).
+  const [prevQuery, setPrevQuery] = useState(query);
+  if (prevQuery !== query) {
+    setPrevQuery(query);
     setSelected(-1);
-  }, [query]);
+  }
 
   const allItems = useMemo(() => [
     ...filteredPages.map((p) => ({ type: "page" as const, ...p })),
@@ -185,7 +188,7 @@ export function CommandPalette() {
 
           {filteredPages.length === 0 && filteredProducts.length === 0 && (
             <div className="text-center py-8 text-sm text-muted-foreground">
-              Sin resultados para <span className="text-foreground font-medium">"{query}"</span>
+              Sin resultados para <span className="text-foreground font-medium">&quot;{query}&quot;</span>
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef, useMemo } from "react";
+import { Suspense, useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,11 +26,14 @@ import {
 } from "@phosphor-icons/react";
 import { CategoryIcon } from "@/lib/icon-map";
 import { ALL_AREA_NAMES } from "@/lib/areas-list";
+import { isAreaAccessible, getAccessibleAreas } from "@/lib/access";
 import { useAuth } from "@/components/auth-provider";
 import { useData } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { downloadCSV, downloadExcel } from "@/lib/export";
 import { Pagination } from "@/components/ui/pagination";
+import { useDismissableMenu } from "@/lib/use-dismissable-menu";
+import { compressImage } from "@/lib/image";
 import type { Product, ProductStatus } from "@/lib/types";
 import type { AuthUser } from "@/lib/auth-users";
 
@@ -87,6 +90,8 @@ function ProductosContent() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [exportOpen, setExportOpen] = useState(false);
+  const closeExport = useCallback(() => setExportOpen(false), []);
+  const exportMenuRef = useDismissableMenu<HTMLDivElement>(exportOpen, closeExport);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const openedViewRef = useRef<string | null>(null);
@@ -97,22 +102,31 @@ function ProductosContent() {
     setPage(1);
   }
 
-  useEffect(() => { setPage(1); }, [search, filterCat, filterStatus, filterArea]);
+  // Reset to page 1 when filters change — adjusted during render (not an effect) by
+  // tracking the previous filter values, per React's "adjusting state" pattern.
+  const [prevFilters, setPrevFilters] = useState({ search, filterCat, filterStatus, filterArea });
+  if (prevFilters.search !== search || prevFilters.filterCat !== filterCat ||
+      prevFilters.filterStatus !== filterStatus || prevFilters.filterArea !== filterArea) {
+    setPrevFilters({ search, filterCat, filterStatus, filterArea });
+    setPage(1);
+  }
 
-  // Auto-open view dialog when navigated from command palette (?view=id)
+  // Auto-open view dialog when navigated from command palette (?view=id).
+  // Genuine sync with an external system (the URL) — the ref guard makes it idempotent.
   useEffect(() => {
     if (!viewFromUrl || openedViewRef.current === viewFromUrl) return;
     const product = products.find((p) => p.id === viewFromUrl);
     if (product) {
       openedViewRef.current = viewFromUrl;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setViewTarget(product);
       router.replace("/productos");
     }
   }, [viewFromUrl, products, router]);
 
   const scopedProducts = useMemo(
-    () => user.role === "admin" ? products : products.filter((p) => p.area === user.area),
-    [user.role, user.area, products]
+    () => user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area)),
+    [user, products]
   );
 
   const filtered = useMemo(() => {
@@ -131,17 +145,19 @@ function ProductosContent() {
     });
   }, [scopedProducts, search, filterCat, filterStatus, filterArea]);
 
-  useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(filtered.length / perPage));
-    if (page > maxPage) setPage(maxPage);
-  }, [filtered.length, perPage, page]);
+  // Clamp page within range during render (not an effect) — safe because the condition
+  // becomes false on the immediate re-render React performs after a render-time setState.
+  const maxPage = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (page > maxPage) {
+    setPage(maxPage);
+  }
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [page]);
 
   const hasFilters = search || filterCat !== "todas" || filterStatus !== "todos" || filterArea !== "todas";
   const areasConBienes = useMemo(
-    () => Array.from(new Set(products.map((p) => p.area).filter(Boolean))) as string[],
-    [products]
+    () => Array.from(new Set(scopedProducts.map((p) => p.area).filter(Boolean))) as string[],
+    [scopedProducts]
   );
 
   const sorted = sortField
@@ -231,14 +247,15 @@ function ProductosContent() {
                 <DownloadSimple className="w-4 h-4" /> Excel
               </Button>
               {/* Mobile export dropdown */}
-              <div className="relative sm:hidden">
+              <div className="relative sm:hidden" ref={exportMenuRef}>
                 <Button variant="outline" size="sm"
+                  aria-label="Exportar"
                   onClick={() => setExportOpen((v) => !v)}
                   className="h-9 w-9 p-0 border-border text-muted-foreground hover:text-foreground hover:bg-accent shrink-0">
                   <DownloadSimple className="w-4 h-4" />
                 </Button>
                 {exportOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-border shadow-lg overflow-hidden"
+                  <div role="menu" aria-label="Exportar" className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-border shadow-lg overflow-hidden"
                     style={{ background: "var(--card)", minWidth: 120 }}>
                     <button onClick={() => { handleExportCSV(); setExportOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-accent transition-colors flex items-center gap-2">
@@ -301,7 +318,7 @@ function ProductosContent() {
                 </SelectContent>
               </Select>
 
-              {user.role === "admin" && (
+              {user.role !== "direccion" && (
                 <Select value={filterArea} onValueChange={(v) => setFilterArea(v ?? "todas")}>
                   <SelectTrigger className="h-8 text-xs bg-muted/60 border-border text-foreground w-52">
                     <SelectValue placeholder="Área asignada" />
@@ -368,14 +385,17 @@ function ProductosContent() {
                       </div>
                       <div className="flex items-center gap-0.5">
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent text-muted-foreground hover:text-foreground"
+                          aria-label={`Ver ${product.nombre}`}
                           onClick={() => setViewTarget(product)}>
                           <Eye className="w-3.5 h-3.5" weight="duotone" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent text-muted-foreground hover:text-primary"
+                          aria-label={`Editar ${product.nombre}`}
                           onClick={() => setEditTarget(product)}>
                           <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                          aria-label={`Eliminar ${product.nombre}`}
                           onClick={() => setDeleteId(product.id)}>
                           <Trash className="w-3.5 h-3.5" weight="duotone" />
                         </Button>
@@ -399,13 +419,14 @@ function ProductosContent() {
                     <SortTh label="Valor Actual" field="valor" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="text-right" />
                     <SortTh label="Garantía" field="garantia" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                     <SortTh label="Estado" field="estado" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                    <TableHead className="text-muted-foreground font-medium text-center">Acciones</TableHead>
+                    <TableHead className="sticky top-16 z-10 bg-card text-muted-foreground font-medium text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginated.map((product, i) => (
                     <TableRow key={product.id}
-                      className="border-border hover:bg-accent/60 transition-colors animate-in fade-in"
+                      onClick={() => setViewTarget(product)}
+                      className="border-border hover:bg-accent/60 transition-colors animate-in fade-in cursor-pointer"
                       style={{
                         animationDelay: `${Math.min(i, 12) * 30}ms`,
                         animationFillMode: "backwards",
@@ -458,16 +479,19 @@ function ProductosContent() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent text-muted-foreground hover:text-foreground"
+                            aria-label={`Ver ${product.nombre}`}
                             onClick={() => setViewTarget(product)}>
                             <Eye className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent text-muted-foreground hover:text-primary"
+                            aria-label={`Editar ${product.nombre}`}
                             onClick={() => setEditTarget(product)}>
                             <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                            aria-label={`Eliminar ${product.nombre}`}
                             onClick={() => setDeleteId(product.id)}>
                             <Trash className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
@@ -561,7 +585,7 @@ function SortTh({ label, field, sortField, sortDir, onSort, className }: {
 }) {
   const active = sortField === field;
   return (
-    <TableHead className={className}>
+    <TableHead className={`sticky top-16 z-10 bg-card ${className ?? ""}`}>
       <button type="button" onClick={() => onSort(field)}
         className="flex items-center gap-1 font-medium hover:text-foreground transition-colors group whitespace-nowrap">
         {label}
@@ -585,12 +609,7 @@ const TIPO_LABEL: Record<string, string> = {
 function ProductDetail({ product }: { product: Product }) {
   const { movements } = useData();
   const history = movements.filter((m) => m.producto_id === product.id).slice(0, 8);
-  const cfg = {
-    activo: { label: "Activo", className: "bg-emerald-500/20 text-emerald-400 border-0" },
-    bajo_stock: { label: "Bajo Stock", className: "bg-amber-500/20 text-amber-400 border-0" },
-    agotado: { label: "Agotado", className: "bg-red-500/20 text-red-400 border-0" },
-    vencido: { label: "Vencido", className: "bg-gray-500/20 text-gray-400 border-0" },
-  }[product.estado];
+  const cfg = STATUS_CONFIG[product.estado];
 
   const row = (label: string, value: React.ReactNode) => (
     <div key={label} className="flex justify-between py-2 border-b border-border last:border-0">
@@ -683,6 +702,11 @@ function ProductForm({
   product?: Product;
 }) {
   const { addProduct, updateProduct, products: allProducts } = useData();
+  const { toast } = useToast();
+  const scopedProducts = useMemo(
+    () => (user.role === "admin" ? allProducts : allProducts.filter((p) => isAreaAccessible(user, p.area))),
+    [allProducts, user]
+  );
   const [submitted, setSubmitted] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(product?.foto_url ?? "");
 
@@ -715,7 +739,7 @@ function ProductForm({
     nombre: !form.nombre.trim() ? "El nombre del bien es requerido" : undefined,
     codigo: !form.codigo.trim()
       ? "El código es requerido"
-      : allProducts.some((p) => p.codigo.toUpperCase() === form.codigo.trim().toUpperCase() && p.id !== product?.id)
+      : scopedProducts.some((p) => p.codigo.toUpperCase() === form.codigo.trim().toUpperCase() && p.id !== product?.id)
         ? "Este código ya está en uso"
         : undefined,
     categoria_id: !form.categoria_id ? "Selecciona una categoría" : undefined,
@@ -723,21 +747,23 @@ function ProductForm({
   };
   const hasErrors = Object.values(errors).some(Boolean);
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      alert("La imagen no puede superar 2 MB. Comprime la foto e inténtalo de nuevo.");
+    if (file.size > 8 * 1024 * 1024) {
+      toast("La imagen no puede superar 8 MB.", "error");
       e.target.value = "";
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const url = ev.target?.result as string;
+    try {
+      const url = await compressImage(file, 800, 0.8);
       setPhotoPreview(url);
       set("foto_url", url);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   function handleSubmit() {
@@ -792,7 +818,7 @@ function ProductForm({
           : <>
               <Upload className="w-7 h-7 text-muted-foreground" weight="duotone" />
               <p className="text-sm text-muted-foreground">Arrastra una foto o haz clic para subir</p>
-              <p className="text-xs text-muted-foreground">PNG, JPG hasta 5MB</p>
+              <p className="text-xs text-muted-foreground">PNG, JPG hasta 8MB — se optimiza automáticamente</p>
             </>
         }
         <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
@@ -849,36 +875,42 @@ function ProductForm({
 
       <div className="space-y-1.5">
         <Label className="text-muted-foreground text-xs">Área asignada</Label>
-        {user.role === "admin" ? (
+        {user.role === "direccion" ? (
+          <Input value={user.area ?? ""} disabled className="bg-muted border-border text-foreground disabled:opacity-100" />
+        ) : (
           <Select value={form.area} onValueChange={(v) => set("area", v ?? "")}>
             <SelectTrigger className="bg-muted border-border text-foreground">
               <SelectValue placeholder="Secretaría o dirección responsable" />
             </SelectTrigger>
             <SelectContent className="border-border max-h-64" style={{ background: "var(--card)" }}>
-              {ALL_AREA_NAMES.map((a) => (
+              {(user.role === "admin" ? ALL_AREA_NAMES : Array.from(getAccessibleAreas(user) ?? [])).map((a) => (
                 <SelectItem key={a} value={a} className="text-foreground text-sm">{a}</SelectItem>
               ))}
             </SelectContent>
           </Select>
-        ) : (
-          <Input value={user.area ?? ""} disabled className="bg-muted border-border text-foreground disabled:opacity-100" />
         )}
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Costo de Adquisición ($)</Label>
-          <Input type="number" min="0" value={form.precio_compra} onChange={(e) => set("precio_compra", e.target.value)}
-            className="bg-muted border-border text-foreground" placeholder="0.00" />
+          <Label className="text-muted-foreground text-xs">Costo de Adquisición</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+            <Input type="number" min="0" value={form.precio_compra} onChange={(e) => set("precio_compra", e.target.value)}
+              className="bg-muted border-border text-foreground pl-6" placeholder="0.00" />
+          </div>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Valor Actual ($)</Label>
-          <Input type="number" min="0" value={form.precio_venta} onChange={(e) => set("precio_venta", e.target.value)}
-            className="bg-muted border-border text-foreground" placeholder="0.00" />
+          <Label className="text-muted-foreground text-xs">Valor Actual</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">$</span>
+            <Input type="number" min="0" value={form.precio_venta} onChange={(e) => set("precio_venta", e.target.value)}
+              className="bg-muted border-border text-foreground pl-6" placeholder="0.00" />
+          </div>
         </div>
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Existencias</Label>
-          <Input type="number" value={form.stock_actual} onChange={(e) => set("stock_actual", e.target.value)}
+          <Input type="number" min="0" value={form.stock_actual} onChange={(e) => set("stock_actual", e.target.value)}
             className="bg-muted border-border text-foreground" placeholder="0" />
         </div>
       </div>
@@ -886,13 +918,13 @@ function ProductForm({
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Stock Mínimo</Label>
-          <Input type="number" value={form.stock_minimo} onChange={(e) => set("stock_minimo", e.target.value)}
+          <Input type="number" min="0" value={form.stock_minimo} onChange={(e) => set("stock_minimo", e.target.value)}
             className={`bg-muted border-border text-foreground ${errClass("stock_minimo")}`} placeholder="0" />
           <FieldError msg={submitted ? errors.stock_minimo : undefined} />
         </div>
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Stock Máximo</Label>
-          <Input type="number" value={form.stock_maximo} onChange={(e) => set("stock_maximo", e.target.value)}
+          <Input type="number" min="0" value={form.stock_maximo} onChange={(e) => set("stock_maximo", e.target.value)}
             className="bg-muted border-border text-foreground" placeholder="0" />
         </div>
         <div className="space-y-1.5">

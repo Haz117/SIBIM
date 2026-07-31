@@ -8,10 +8,12 @@ import { Logo } from "@/components/logo";
 import { useUI } from "@/components/layout/ui-context";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useData } from "@/lib/store";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useDismissableMenu } from "@/lib/use-dismissable-menu";
 
 interface TopbarProps {
   title: string;
@@ -26,8 +28,10 @@ export function Topbar({ title, subtitle }: TopbarProps) {
   const [now] = useState(() => Date.now());
   const [spinning, setSpinning] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const closeNotif = useCallback(() => setNotifOpen(false), []);
+  const notifRef = useDismissableMenu<HTMLDivElement>(notifOpen, closeNotif);
 
-  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
   const alertCount = scopedProducts.filter((p) => {
     if (p.estado === "bajo_stock" || p.estado === "agotado") return true;
     if (p.fecha_vencimiento) {
@@ -121,7 +125,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         </Button>
 
         {/* Notifications */}
-        <div className="relative">
+        <div className="relative" ref={notifRef}>
           <Button
             variant="ghost"
             size="icon"
@@ -140,15 +144,11 @@ export function Topbar({ title, subtitle }: TopbarProps) {
 
           {notifOpen && (
             <>
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-[49]"
-                onClick={() => setNotifOpen(false)}
-              />
-
               {/* Dropdown panel */}
               <div
-                className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-border shadow-2xl z-50 overflow-hidden"
+                role="menu"
+                aria-label="Notificaciones"
+                className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border shadow-2xl z-50 overflow-hidden"
                 style={{ background: "var(--card)" }}
               >
                 {/* Header */}

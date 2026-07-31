@@ -6,7 +6,11 @@ import {
   mockCategories as initialCategories,
   mockMovements as initialMovements,
 } from "@/lib/mock-data"
+import { useToast } from "@/components/ui/toast"
 import type { Product, Category, Movement } from "@/lib/types"
+
+const STORAGE_FULL_MESSAGE =
+  "No se pudo guardar: el almacenamiento local está lleno. Elimina fotos o bienes para liberar espacio."
 
 const KEYS = {
   products:   "sibim_products",
@@ -33,8 +37,24 @@ function load<T>(key: string, fallback: T[]): T[] {
   return [...fallback]
 }
 
-function save(key: string, value: unknown) {
-  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+function save(key: string, value: unknown): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+    return true
+  } catch {
+    return false
+  }
+}
+
+// profileName/avatarUrl are stored as plain strings (read back via getItem
+// with no JSON.parse), so they skip the JSON.stringify save() does above.
+function saveRaw(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch {
+    return false
+  }
 }
 
 interface DataStore {
@@ -60,6 +80,7 @@ interface DataStore {
 const DataContext = createContext<DataStore | null>(null)
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const { toast } = useToast()
   const [categories, setCategories] = useState<Category[]>(() => load(KEYS.categories, initialCategories))
 
   const [products, setProducts] = useState<Product[]>(() => {
@@ -85,21 +106,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return localStorage.getItem(KEYS.avatarUrl)
   })
 
-  // Persist state changes
-  useEffect(() => { save(KEYS.products, products) }, [products])
-  useEffect(() => { save(KEYS.categories, categories) }, [categories])
-  useEffect(() => { save(KEYS.movements, movements) }, [movements])
+  // Persist state changes — surface a toast instead of silently swallowing a
+  // QuotaExceededError, since a failed save here means the change is lost on
+  // the next reload with no other indication to the user.
+  useEffect(() => { if (!save(KEYS.products, products)) toast(STORAGE_FULL_MESSAGE, "error") }, [products, toast])
+  useEffect(() => { if (!save(KEYS.categories, categories)) toast(STORAGE_FULL_MESSAGE, "error") }, [categories, toast])
+  useEffect(() => { if (!save(KEYS.movements, movements)) toast(STORAGE_FULL_MESSAGE, "error") }, [movements, toast])
 
   const setProfileName = useCallback((name: string) => {
     setProfileNameState(name)
-    localStorage.setItem(KEYS.profileName, name)
-  }, [])
+    if (!saveRaw(KEYS.profileName, name)) toast(STORAGE_FULL_MESSAGE, "error")
+  }, [toast])
 
   const setAvatarUrl = useCallback((url: string | null) => {
     setAvatarUrlState(url)
-    if (url) { try { localStorage.setItem(KEYS.avatarUrl, url) } catch {} }
-    else { localStorage.removeItem(KEYS.avatarUrl) }
-  }, [])
+    if (url) {
+      if (!saveRaw(KEYS.avatarUrl, url)) toast(STORAGE_FULL_MESSAGE, "error")
+    } else {
+      localStorage.removeItem(KEYS.avatarUrl)
+    }
+  }, [toast])
 
   const resetData = useCallback(() => {
     localStorage.removeItem(KEYS.products)

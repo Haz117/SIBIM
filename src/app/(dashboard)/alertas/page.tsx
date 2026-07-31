@@ -4,18 +4,27 @@ import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { WarningOctagon, XCircle, Clock, CheckCircle, ArrowCounterClockwise, PaperPlaneTilt, Eye } from "@phosphor-icons/react";
 import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
+import { useToast } from "@/components/ui/toast";
+import { MovimientoForm } from "@/components/movimiento-form";
 import { useState } from "react";
+import type { Product } from "@/lib/types";
 
 export default function AlertasPage() {
   const user = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const { products } = useData();
   const [now] = useState(() => Date.now());
-  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
+  const [restockTarget, setRestockTarget] = useState<Product | null>(null);
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
   const agotados = scopedProducts.filter((p) => p.estado === "agotado");
   const bajoStock = scopedProducts.filter((p) => p.estado === "bajo_stock");
   const porVencer = scopedProducts.filter((p) => {
@@ -38,6 +47,7 @@ export default function AlertasPage() {
       border: "rgba(239,68,68,0.2)",
       action: "Reponer",
       actionIcon: ArrowCounterClockwise,
+      restock: true,
     },
     {
       title: "Existencias Bajas",
@@ -48,6 +58,7 @@ export default function AlertasPage() {
       border: "rgba(245,158,11,0.2)",
       action: "Solicitar",
       actionIcon: PaperPlaneTilt,
+      restock: true,
     },
     {
       title: "Garantías por Vencer (7 días)",
@@ -58,6 +69,7 @@ export default function AlertasPage() {
       border: "rgba(167,139,250,0.2)",
       action: "Revisar",
       actionIcon: Eye,
+      restock: false,
     },
   ];
 
@@ -106,7 +118,7 @@ export default function AlertasPage() {
         </div>}
 
         {/* Alert sections */}
-        {totalAlertas > 0 && sections.map(({ title, items, icon: Icon, color, bg, border, action, actionIcon: ActionIcon }, si) => {
+        {totalAlertas > 0 && sections.map(({ title, items, icon: Icon, color, bg, border, action, actionIcon: ActionIcon, restock }, si) => {
           const isVencimiento = title.startsWith("Garantías");
           return (
             <Card key={title}
@@ -156,7 +168,8 @@ export default function AlertasPage() {
                                 )}
                                 <button
                                   type="button"
-                                  onClick={() => router.push(`/productos?view=${product.id}`)}
+                                  onClick={() => restock ? setRestockTarget(product) : router.push(`/productos?view=${product.id}`)}
+                                  aria-label={`${action} ${product.nombre}`}
                                   className="inline-flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded-lg text-white transition-all active:scale-95"
                                   style={{ background: color }}
                                   onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.15)"; e.currentTarget.style.boxShadow = `0 2px 8px ${color}55`; }}
@@ -196,6 +209,25 @@ export default function AlertasPage() {
           );
         })}
       </div>
+
+      {/* Quick restock dialog — pre-fills the movement form with the alerted product */}
+      <Dialog open={!!restockTarget} onOpenChange={(o) => { if (!o) setRestockTarget(null); }}>
+        <DialogContent className="max-w-lg border-border text-foreground" style={{ background: "var(--card)" }}>
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Registrar reabastecimiento</DialogTitle>
+          </DialogHeader>
+          {restockTarget && (
+            <MovimientoForm
+              products={scopedProducts}
+              user={user}
+              defaultProductId={restockTarget.id}
+              defaultTipo="entrada"
+              onClose={() => setRestockTarget(null)}
+              onSaved={() => toast("Movimiento registrado correctamente")}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

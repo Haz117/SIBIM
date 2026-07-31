@@ -12,11 +12,13 @@ import {
 } from "recharts";
 import {
   Package, TrendUp, WarningOctagon, XCircle,
-  ArrowUpRight, ArrowDownRight, CurrencyDollar, Pulse, ArrowRight,
+  ArrowUpRight, ArrowDownRight, CurrencyDollar, Pulse, ArrowRight, CheckCircle,
+  ChartPieSlice, ChartLine, Plus,
 } from "@phosphor-icons/react";
 import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import type { AuthUser } from "@/lib/auth-users";
 import type { Product, Category, Movement } from "@/lib/types";
 
@@ -86,8 +88,8 @@ export default function DashboardPage() {
   const user = useAuth();
   const { products, movements, categories } = useData();
 
-  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
-  const scopedMovements = user.role === "admin" ? movements : movements.filter((m) => m.producto?.area === user.area);
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
+  const scopedMovements = user.role === "admin" ? movements : movements.filter((m) => isAreaAccessible(user, m.producto?.area));
   const STAT_CARDS = buildStatCards(user, scopedProducts, scopedMovements, products, movements, categories);
   const valorPorCategoria = buildValorPorCategoria(scopedProducts, categories);
   const bajosStock = scopedProducts.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado");
@@ -107,11 +109,37 @@ export default function DashboardPage() {
     });
   }, [scopedMovements]);
 
+  const semanaSinMovimientos = movimientosSemana.every((d) => d.entradas === 0 && d.salidas === 0);
+  const sinBienesRegistrados = user.role !== "admin" && scopedProducts.length === 0;
+
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       <Topbar title="Dashboard" subtitle="Resumen general del inventario" />
 
       <div className="p-6 space-y-6">
+
+        {/* Welcome / empty-inventory prompt — new areas with nothing registered yet */}
+        {sinBienesRegistrados && (
+          <Card className="border-primary/25 relative overflow-hidden animate-in fade-in slide-in-from-bottom-1"
+            style={{ background: "linear-gradient(135deg, var(--card) 60%, var(--accent))" }}>
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-primary-foreground"
+                style={{ background: "var(--primary)" }}>
+                <Package className="w-5.5 h-5.5" weight="duotone" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Aún no hay bienes registrados en {user.area ?? "tu área"}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Agrega el primer bien patrimonial para empezar a ver aquí tus indicadores.</p>
+              </div>
+              <Link href="/productos" className="flex-shrink-0">
+                <span className="inline-flex items-center gap-1.5 h-9 px-3.5 text-xs font-medium rounded-lg text-primary-foreground transition-transform active:scale-95"
+                  style={{ background: "var(--primary)" }}>
+                  <Plus className="w-3.5 h-3.5" weight="bold" /> Agregar bien
+                </span>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -153,30 +181,42 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-semibold text-foreground">Movimientos de la Semana</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={movimientosSemana}>
-                  <defs>
-                    <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorSalidas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="dia" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }} />
-                  <Area type="monotone" dataKey="entradas" stroke="#7C3AED" strokeWidth={2} fill="url(#colorEntradas)" name="Entradas" />
-                  <Area type="monotone" dataKey="salidas" stroke="#10B981" strokeWidth={2} fill="url(#colorSalidas)" name="Salidas" />
-                </AreaChart>
-              </ResponsiveContainer>
-              <div className="flex gap-4 mt-2">
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-600" /><span className="text-xs text-muted-foreground">Entradas</span></div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /><span className="text-xs text-muted-foreground">Salidas</span></div>
-              </div>
+              {semanaSinMovimientos ? (
+                <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-center">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-muted">
+                    <ChartLine className="w-6 h-6 text-muted-foreground/50" weight="duotone" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Sin movimientos esta semana</p>
+                  <p className="text-xs text-muted-foreground/60">Las entradas y salidas registradas aparecerán aquí</p>
+                </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={movimientosSemana}>
+                      <defs>
+                        <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorSalidas" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="dia" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }} />
+                      <Area type="monotone" dataKey="entradas" stroke="#7C3AED" strokeWidth={2} fill="url(#colorEntradas)" name="Entradas" />
+                      <Area type="monotone" dataKey="salidas" stroke="#10B981" strokeWidth={2} fill="url(#colorSalidas)" name="Salidas" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-600" /><span className="text-xs text-muted-foreground">Entradas</span></div>
+                    <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /><span className="text-xs text-muted-foreground">Salidas</span></div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -186,27 +226,38 @@ export default function DashboardPage() {
               <CardTitle className="text-sm font-semibold text-foreground">Valor por Categoría</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie data={valorPorCategoria} cx="50%" cy="50%" innerRadius={45} outerRadius={70}
-                    paddingAngle={3} dataKey="value">
-                    {valorPorCategoria.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }}
-                    formatter={(v) => [`$${Number(v).toLocaleString()}`, ""]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-1.5 mt-1">
-                {valorPorCategoria.map((cat) => (
-                  <div key={cat.id} className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
-                    <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
-                    <span className="text-xs font-medium text-foreground">${cat.value.toLocaleString()}</span>
+              {valorPorCategoria.length === 0 ? (
+                <div className="h-[160px] flex flex-col items-center justify-center gap-2 text-center">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center bg-muted">
+                    <ChartPieSlice className="w-5.5 h-5.5 text-muted-foreground/50" weight="duotone" />
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-muted-foreground">Sin bienes con valor asignado aún</p>
+                </div>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <PieChart>
+                      <Pie data={valorPorCategoria} cx="50%" cy="50%" innerRadius={45} outerRadius={70}
+                        paddingAngle={3} dataKey="value">
+                        {valorPorCategoria.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }}
+                        formatter={(v) => [`$${Number(v).toLocaleString()}`, ""]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="space-y-1.5 mt-1">
+                    {valorPorCategoria.map((cat) => (
+                      <div key={cat.id} className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                        <span className="text-xs text-muted-foreground flex-1 truncate">{cat.name}</span>
+                        <span className="text-xs font-medium text-foreground">${cat.value.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -233,7 +284,7 @@ export default function DashboardPage() {
             <CardContent className="space-y-3">
               {bajosStock.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <span className="text-2xl">✓</span>
+                  <CheckCircle className="w-8 h-8 text-emerald-500" weight="duotone" />
                   <p className="text-sm font-medium text-emerald-500">Sin alertas de stock</p>
                   <p className="text-xs text-muted-foreground">Todas las existencias están en nivel adecuado</p>
                 </div>

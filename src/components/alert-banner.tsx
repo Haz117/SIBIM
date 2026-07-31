@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Warning, X } from "@phosphor-icons/react";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useData } from "@/lib/store";
 
 export function AlertBanner() {
@@ -14,7 +15,7 @@ export function AlertBanner() {
   const scopedProducts =
     user.role === "admin"
       ? products
-      : products.filter((p) => p.area === user.area);
+      : products.filter((p) => isAreaAccessible(user, p.area));
 
   const agotados = scopedProducts.filter((p) => p.estado === "agotado");
 

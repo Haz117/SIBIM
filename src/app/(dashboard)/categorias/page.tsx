@@ -15,6 +15,7 @@ import {
 import { Plus, PencilSimple, Trash, Package, WarningCircle, MagnifyingGlass } from "@phosphor-icons/react";
 import { CATEGORY_ICON_NAMES, resolveCategoryIcon, CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useData } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import type { Category } from "@/lib/types";
@@ -33,7 +34,7 @@ export default function CategoriasPage() {
 
   const scopedProducts = user.role === "admin"
     ? products
-    : products.filter((p) => p.area === user.area);
+    : products.filter((p) => isAreaAccessible(user, p.area));
 
   const categoriasFiltradas = (user.role === "admin"
     ? categories
@@ -44,10 +45,6 @@ export default function CategoriasPage() {
 
   const maxProductos = Math.max(...categoriasConBienes.map((c) =>
     scopedProducts.filter((p) => p.categoria_id === c.id).length
-  ), 1);
-
-  const maxValor = Math.max(...categoriasConBienes.map((c) =>
-    scopedProducts.filter((p) => p.categoria_id === c.id).reduce((s, p) => s + p.stock_actual * p.precio_venta, 0)
   ), 1);
 
   function handleDelete() {
@@ -165,10 +162,12 @@ export default function CategoriasPage() {
                     {user.role === "admin" && (
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent text-muted-foreground hover:text-primary"
+                          aria-label={`Editar ${cat.nombre}`}
                           onClick={() => setEditTarget(cat)}>
                           <PencilSimple className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                          aria-label={`Eliminar ${cat.nombre}`}
                           onClick={() => setDeleteId(cat.id)}>
                           <Trash className="w-3.5 h-3.5" />
                         </Button>

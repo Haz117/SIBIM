@@ -58,12 +58,13 @@ npm run lint    # eslint
 
 ## Autenticación y roles
 
-El login es un **mock local** (sin backend real) — ver [`src/lib/auth-users.ts`](src/lib/auth-users.ts) y [`src/lib/session.ts`](src/lib/session.ts). Hay dos roles:
+El login es un **mock local** (sin backend real) — ver [`src/lib/auth-users.ts`](src/lib/auth-users.ts) y [`src/lib/session.ts`](src/lib/session.ts). Hay tres niveles de acceso (ver [`src/lib/access.ts`](src/lib/access.ts)):
 
 | Rol | Alcance |
 | --- | --- |
 | **Superusuario** | Ve y gestiona todos los bienes de todas las áreas. |
-| **Usuario de área** | Solo ve y gestiona los bienes asignados a su secretaría/dirección; el campo de área queda fijo al crear un bien. |
+| **Secretario/a** | Ve y gestiona los bienes de su secretaría **y** de todas las direcciones adscritas a ella. |
+| **Dirección** | Ve y gestiona únicamente los bienes de su propia dirección; el campo de área queda fijo al crear un bien. |
 
 La sesión se guarda en una cookie httpOnly simple. Las rutas del dashboard están protegidas por [`src/proxy.ts`](src/proxy.ts).
 
@@ -100,6 +101,7 @@ src/
     store.tsx                    # DataProvider: estado global + persistencia localStorage
     mock-data.ts                 # bienes, categorías y movimientos de ejemplo
     auth-users.ts                # usuarios de demostración (roles y áreas)
+    access.ts                    # alcance por rol (admin/secretario/dirección)
     export.ts                    # helpers downloadCSV, downloadExcel, printReport
     areas-icons.tsx, areas-list.ts, areas.types.ts  # helpers del organigrama
     icon-map.tsx                 # íconos por categoría de bien

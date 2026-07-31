@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -19,29 +19,22 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowUp, ArrowDown, ArrowsLeftRight, Equalizer,
   Plus, MagnifyingGlass, ClipboardText, ArrowUpRight, ArrowDownRight,
-  WarningCircle, DownloadSimple, Prohibit,
+  DownloadSimple, Prohibit,
 } from "@phosphor-icons/react";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useData } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { downloadCSV, downloadExcel } from "@/lib/export";
-import type { MovementType, Product } from "@/lib/types";
-
-const TIPO_CONFIG: Record<MovementType, {
-  label: string; icon: React.ReactNode;
-  color: string; bg: string; hex: string; hexBg: string;
-}> = {
-  entrada: { label: "Entrada", icon: <ArrowUp className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/15", hex: "#10B981", hexBg: "rgba(16,185,129,0.15)" },
-  salida: { label: "Salida", icon: <ArrowDown className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/15", hex: "#EF4444", hexBg: "rgba(239,68,68,0.15)" },
-  ajuste: { label: "Ajuste", icon: <Equalizer className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/15", hex: "#A78BFA", hexBg: "rgba(167,139,250,0.15)" },
-  transferencia: { label: "Transferencia", icon: <ArrowsLeftRight className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/15", hex: "#3B82F6", hexBg: "rgba(59,130,246,0.15)" },
-};
+import { useDismissableMenu } from "@/lib/use-dismissable-menu";
+import { MovimientoForm, TIPO_CONFIG } from "@/components/movimiento-form";
+import type { MovementType } from "@/lib/types";
 
 export default function MovimientosPage() {
   const user = useAuth();
+  const router = useRouter();
   const { products, movements, deleteMovement } = useData();
   const { toast } = useToast();
 
@@ -54,15 +47,30 @@ export default function MovimientosPage() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(25);
   const [exportOpen, setExportOpen] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const closeExport = useCallback(() => setExportOpen(false), []);
+  const exportMenuRef = useDismissableMenu<HTMLDivElement>(exportOpen, closeExport);
 
-  useEffect(() => { setPage(1); }, [search, filterTipo, fechaDesde, fechaHasta]);
+  function toggleSort(field: string) {
+    if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortField(field); setSortDir("asc"); }
+  }
+
+  // Reset to page 1 when filters change — adjusted during render (not an effect).
+  const [prevFilters, setPrevFilters] = useState({ search, filterTipo, fechaDesde, fechaHasta });
+  if (prevFilters.search !== search || prevFilters.filterTipo !== filterTipo ||
+      prevFilters.fechaDesde !== fechaDesde || prevFilters.fechaHasta !== fechaHasta) {
+    setPrevFilters({ search, filterTipo, fechaDesde, fechaHasta });
+    setPage(1);
+  }
 
   const scopedMovements = user.role === "admin"
     ? movements
-    : movements.filter((m) => m.producto?.area === user.area);
+    : movements.filter((m) => isAreaAccessible(user, m.producto?.area));
   const scopedProducts = user.role === "admin"
     ? products
-    : products.filter((p) => p.area === user.area);
+    : products.filter((p) => isAreaAccessible(user, p.area));
 
   const summary = (["entrada", "salida", "ajuste", "transferencia"] as MovementType[]).map((tipo) => {
     const items = scopedMovements.filter((m) => m.tipo === tipo);
@@ -80,13 +88,25 @@ export default function MovimientosPage() {
     return matchSearch && matchTipo && matchDesde && matchHasta;
   });
 
-  useEffect(() => {
-    const maxPage = Math.max(1, Math.ceil(filtered.length / perPage));
-    if (page > maxPage) setPage(maxPage);
-  }, [filtered.length, perPage, page]);
+  const maxPage = Math.max(1, Math.ceil(filtered.length / perPage));
+  if (page > maxPage) {
+    setPage(maxPage);
+  }
 
   const hasFilters = search || filterTipo !== "todos" || fechaDesde || fechaHasta;
-  const paginated = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const sorted = sortField
+    ? [...filtered].sort((a, b) => {
+        let av: string | number = "", bv: string | number = "";
+        if (sortField === "tipo")     { av = a.tipo; bv = b.tipo; }
+        if (sortField === "producto") { av = a.producto?.nombre ?? ""; bv = b.producto?.nombre ?? ""; }
+        if (sortField === "cantidad") { av = a.cantidad; bv = b.cantidad; }
+        if (sortField === "fecha")    { av = a.created_at; bv = b.created_at; }
+        const cmp = typeof av === "number" ? av - (bv as number) : (av as string).localeCompare(bv as string, "es");
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : filtered;
+  const paginated = sorted.slice((page - 1) * perPage, page * perPage);
 
   function handleAnular() {
     if (!deleteMovId) return;
@@ -179,14 +199,15 @@ export default function MovimientosPage() {
                 <DownloadSimple className="w-4 h-4" /> Excel
               </Button>
               {/* Mobile export dropdown */}
-              <div className="relative sm:hidden">
+              <div className="relative sm:hidden" ref={exportMenuRef}>
                 <Button variant="outline" size="sm"
+                  aria-label="Exportar"
                   onClick={() => setExportOpen((v) => !v)}
                   className="h-9 w-9 p-0 border-border text-muted-foreground hover:text-foreground hover:bg-accent shrink-0">
                   <DownloadSimple className="w-4 h-4" />
                 </Button>
                 {exportOpen && (
-                  <div className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-border shadow-lg overflow-hidden"
+                  <div role="menu" aria-label="Exportar" className="absolute right-0 top-full mt-1 z-50 rounded-xl border border-border shadow-lg overflow-hidden"
                     style={{ background: "var(--card)", minWidth: 120 }}>
                     <button onClick={() => { handleExportCSV(); setExportOpen(false); }}
                       className="w-full text-left px-4 py-2.5 text-xs text-foreground hover:bg-accent transition-colors flex items-center gap-2">
@@ -291,6 +312,7 @@ export default function MovimientosPage() {
                           </p>
                           <Button variant="ghost" size="icon"
                             className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                            aria-label={`Anular movimiento de ${mov.producto?.nombre ?? "producto"}`}
                             onClick={() => setDeleteMovId(mov.id)}>
                             <Prohibit className="w-3 h-3" weight="duotone" />
                           </Button>
@@ -305,16 +327,16 @@ export default function MovimientosPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
-                    <TableHead className="text-muted-foreground font-medium pl-6">Tipo</TableHead>
-                    <TableHead className="text-muted-foreground font-medium">Producto</TableHead>
-                    <TableHead className="text-muted-foreground font-medium text-center">Cantidad</TableHead>
+                <TableHeader className="sticky top-16 z-10 bg-card">
+                  <TableRow className="border-border hover:bg-transparent bg-card">
+                    <SortTh label="Tipo" field="tipo" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="pl-6" />
+                    <SortTh label="Producto" field="producto" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
+                    <SortTh label="Cantidad" field="cantidad" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="text-center" />
                     <TableHead className="text-muted-foreground font-medium text-center">Ant. → Nuevo</TableHead>
                     <TableHead className="text-muted-foreground font-medium">Motivo</TableHead>
                     <TableHead className="text-muted-foreground font-medium">Referencia</TableHead>
                     <TableHead className="text-muted-foreground font-medium">Usuario</TableHead>
-                    <TableHead className="text-muted-foreground font-medium">Fecha</TableHead>
+                    <SortTh label="Fecha" field="fecha" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                     <TableHead className="text-muted-foreground font-medium text-center pr-4">Acción</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -323,7 +345,8 @@ export default function MovimientosPage() {
                     const cfg = TIPO_CONFIG[mov.tipo];
                     return (
                       <TableRow key={mov.id}
-                        className="border-border hover:bg-accent/60 transition-colors animate-in fade-in"
+                        onClick={() => mov.producto_id && router.push(`/productos?view=${mov.producto_id}`)}
+                        className="border-border hover:bg-accent/60 transition-colors animate-in fade-in cursor-pointer"
                         style={{
                           animationDelay: `${Math.min(i, 12) * 30}ms`,
                           animationFillMode: "backwards",
@@ -364,7 +387,8 @@ export default function MovimientosPage() {
                           <Button variant="ghost" size="icon"
                             className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
                             title="Anular movimiento"
-                            onClick={() => setDeleteMovId(mov.id)}>
+                            aria-label={`Anular movimiento de ${mov.producto?.nombre ?? "producto"}`}
+                            onClick={(e) => { e.stopPropagation(); setDeleteMovId(mov.id); }}>
                             <Prohibit className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
                         </TableCell>
@@ -419,167 +443,22 @@ export default function MovimientosPage() {
   );
 }
 
-// ─── Movimiento Form ──────────────────────────────────────────────────────────
+// ─── Sort header ─────────────────────────────────────────────────────────────
 
-function MovimientoForm({
-  onClose, onSaved, products, user,
-}: {
-  onClose: () => void;
-  onSaved: () => void;
-  products: Product[];
-  user: import("@/lib/auth-users").AuthUser;
+function SortTh({ label, field, sortField, sortDir, onSort, className }: {
+  label: string; field: string; sortField: string | null;
+  sortDir: "asc" | "desc"; onSort: (f: string) => void; className?: string;
 }) {
-  const { addMovement } = useData();
-  const [tipo, setTipo] = useState<MovementType>("entrada");
-  const [productoId, setProductoId] = useState("");
-  const [cantidad, setCantidad] = useState("");
-  const [referencia, setReferencia] = useState("");
-  const [motivo, setMotivo] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const selectedProduct = products.find((p) => p.id === productoId);
-
-  const errors = {
-    producto: !productoId ? "Selecciona un producto" : undefined,
-    cantidad: !cantidad || parseInt(cantidad) <= 0 ? "Ingresa una cantidad válida" : undefined,
-    stockInsuficiente:
-      selectedProduct && tipo === "salida" && parseInt(cantidad) > selectedProduct.stock_actual
-        ? `Stock insuficiente (disponible: ${selectedProduct.stock_actual})`
-        : undefined,
-  };
-  const hasErrors = Object.values(errors).some(Boolean);
-
-  function calcNuevoStock(): number {
-    if (!selectedProduct) return 0;
-    const qty = parseInt(cantidad) || 0;
-    if (tipo === "entrada") return selectedProduct.stock_actual + qty;
-    if (tipo === "salida") return Math.max(0, selectedProduct.stock_actual - qty);
-    if (tipo === "transferencia") return Math.max(0, selectedProduct.stock_actual - qty);
-    return qty; // ajuste: cantidad es el nuevo valor absoluto
-  }
-
-  function handleSubmit() {
-    setSubmitted(true);
-    if (hasErrors) return;
-
-    const product = products.find((p) => p.id === productoId)!;
-    const stockAnterior = product.stock_actual;
-    const stockNuevo = calcNuevoStock();
-
-    addMovement({
-      producto_id: product.id,
-      producto: { ...product, stock_actual: stockNuevo },
-      tipo,
-      cantidad: parseInt(cantidad),
-      stock_anterior: stockAnterior,
-      stock_nuevo: stockNuevo,
-      motivo: motivo || undefined,
-      referencia: referencia || undefined,
-      usuario_id: user.id,
-      usuario_nombre: user.nombre,
-    });
-
-    onSaved();
-    onClose();
-  }
-
-  const errClass = (field: keyof typeof errors) =>
-    submitted && errors[field] ? "border-destructive" : "";
-
+  const active = sortField === field;
   return (
-    <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-      {/* Tipo */}
-      <div className="space-y-2">
-        <Label className="text-muted-foreground text-xs">Tipo de Movimiento *</Label>
-        <div className="grid grid-cols-4 gap-2">
-          {(["entrada", "salida", "ajuste", "transferencia"] as MovementType[]).map((t) => {
-            const cfg = TIPO_CONFIG[t];
-            const isSelected = tipo === t;
-            return (
-              <button key={t} type="button" onClick={() => setTipo(t)}
-                className="py-3 px-2 rounded-xl text-xs font-semibold transition-all flex flex-col items-center gap-1.5 border"
-                style={isSelected
-                  ? { background: cfg.hexBg, color: cfg.hex, borderColor: cfg.hex + "50", boxShadow: `0 0 0 2px ${cfg.hex}25` }
-                  : { background: "var(--muted)", color: "var(--muted-foreground)", borderColor: "transparent" }
-                }>
-                <span style={isSelected ? { color: cfg.hex } : {}}>{cfg.icon}</span>
-                {cfg.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Producto */}
-      <div className="space-y-1.5">
-        <Label className="text-muted-foreground text-xs">Producto *</Label>
-        <Select value={productoId} onValueChange={(v) => setProductoId(v ?? "")}>
-          <SelectTrigger className={`w-full bg-muted border-border text-foreground ${errClass("producto")}`}>
-            <SelectValue placeholder="Seleccionar producto" />
-          </SelectTrigger>
-          <SelectContent className="border-border max-h-60" style={{ background: "var(--card)" }}>
-            {products.map((p) => (
-              <SelectItem key={p.id} value={p.id} className="text-foreground">
-                <span className="inline-flex items-center gap-1.5">
-                  <CategoryIcon name={p.categoria?.icono} className="w-3.5 h-3.5" />
-                  {p.nombre}
-                  <span className="text-muted-foreground ml-1">— {p.stock_actual} {p.unidad}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {submitted && errors.producto && (
-          <p className="flex items-center gap-1 text-[11px] text-destructive mt-1">
-            <WarningCircle className="w-3 h-3" weight="fill" /> {errors.producto}
-          </p>
-        )}
-      </div>
-
-      {/* Stock preview */}
-      {selectedProduct && cantidad && parseInt(cantidad) > 0 && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-muted/40 text-xs">
-          <span className="text-muted-foreground">Stock actual: <b className="text-foreground">{selectedProduct.stock_actual}</b></span>
-          <span className="text-muted-foreground/50">→</span>
-          <span className="text-muted-foreground">Nuevo stock: <b className="text-foreground">{calcNuevoStock()}</b></span>
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            {tipo === "ajuste" ? "Nuevo Stock (absoluto) *" : "Cantidad *"}
-          </Label>
-          <Input type="number" min="1" value={cantidad} onChange={(e) => setCantidad(e.target.value)}
-            className={`h-9 bg-muted border-border text-foreground ${errClass("cantidad")}`} placeholder="0" />
-          {submitted && (errors.cantidad || errors.stockInsuficiente) && (
-            <p className="flex items-center gap-1 text-[11px] text-destructive mt-1">
-              <WarningCircle className="w-3 h-3" weight="fill" /> {errors.cantidad || errors.stockInsuficiente}
-            </p>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Referencia / Folio</Label>
-          <Input value={referencia} onChange={(e) => setReferencia(e.target.value)}
-            className="h-9 bg-muted border-border text-foreground placeholder:text-muted-foreground" placeholder="FAC-2024-001" />
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-muted-foreground text-xs">Motivo</Label>
-        <Input value={motivo} onChange={(e) => setMotivo(e.target.value)}
-          className="h-9 bg-muted border-border text-foreground placeholder:text-muted-foreground"
-          placeholder="Ej. Compra a proveedor, Devolución, Merma..." />
-      </div>
-
-      <div className="flex gap-3 pt-1">
-        <Button type="button" variant="outline" onClick={onClose} className="flex-1 border-border text-muted-foreground hover:bg-accent">
-          Cancelar
-        </Button>
-        <Button type="submit" className="flex-1 text-primary-foreground" style={{ background: "var(--primary)" }}>
-          Registrar Movimiento
-        </Button>
-      </div>
-    </form>
+    <TableHead className={className}>
+      <button type="button" onClick={() => onSort(field)}
+        className="flex items-center gap-1 font-medium hover:text-foreground transition-colors group whitespace-nowrap">
+        {label}
+        <span className={`text-[10px] transition-all ${active ? "text-primary opacity-100" : "opacity-25 group-hover:opacity-60"}`}>
+          {active ? (sortDir === "asc" ? "↑" : "↓") : "↕"}
+        </span>
+      </button>
+    </TableHead>
   );
 }

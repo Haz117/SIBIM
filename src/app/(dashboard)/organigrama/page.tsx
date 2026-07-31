@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { initials } from "@/lib/format";
 import areasData from "../../../../config/areas.js";
 import type { AreasConfig } from "@/lib/areas.types";
@@ -42,10 +43,18 @@ function AreaRow({ name, icon: AreaIcon, expanded, onToggle, dense, isOwn }: {
   expanded: boolean;
   onToggle: () => void;
   dense?: boolean;
+  /** Coincide exactamente con el área del usuario (dirección propia, o secretaría propia). */
   isOwn?: boolean;
 }) {
   const { products } = useData();
-  const items = useMemo(() => products.filter((p) => p.area === name), [products, name]);
+  const user = useAuth();
+  // Defensa en profundidad: aunque el componente padre decida qué filas renderizar,
+  // esta fila nunca calcula ni expone bienes de un área fuera del alcance del usuario.
+  const canSeeItems = user.role === "admin" || isAreaAccessible(user, name);
+  const items = useMemo(
+    () => (canSeeItems ? products.filter((p) => p.area === name) : []),
+    [products, name, canSeeItems]
+  );
 
   return (
     <div className={cn(
@@ -104,6 +113,103 @@ function AreaRow({ name, icon: AreaIcon, expanded, onToggle, dense, isOwn }: {
   );
 }
 
+/** Encuentra la secretaría/despacho/organismo que agrupa a una dirección dada. */
+function findParent(area: string): { label: string } | null {
+  const sec = data.secretarias.find((s) => s.direcciones.includes(area));
+  if (sec) return { label: sec.nombre };
+  if (data.despacho.adscritas.includes(area)) return { label: data.despacho.nombre };
+  const aut = data.autonomos.find((a) => a.direcciones.includes(area));
+  if (aut) return { label: aut.nombre };
+  return null;
+}
+
+/** Vista restringida: secretarios ven solo su secretaría y sus direcciones; direcciones ven solo la suya. */
+function RestrictedOrganigrama({ user }: { user: { role: string; area: string | null } }) {
+  const [expandedAreas, setExpandedAreas] = useState<Record<string, boolean>>(() =>
+    user.area ? { [user.area]: true } : {}
+  );
+  function toggleArea(key: string) {
+    setExpandedAreas((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  const area = user.area;
+  if (!area) {
+    return (
+      <p className="text-sm text-muted-foreground">No tienes un área asignada. Contacta al administrador del sistema.</p>
+    );
+  }
+
+  if (user.role === "secretario") {
+    const sec = data.secretarias.find((s) => s.nombre === area);
+    if (!sec) {
+      return <p className="text-sm text-muted-foreground">No se encontró tu secretaría en el organigrama.</p>;
+    }
+    return (
+      <Card className="border-primary/30 bg-card overflow-hidden relative animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="absolute inset-x-0 top-0 h-1" style={{ background: "var(--primary)" }} />
+        <CardContent className="p-6 relative">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 bg-accent text-primary">
+              <Buildings className="w-7 h-7" weight="duotone" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tu secretaría</p>
+              </div>
+              <h2 className="text-xl font-bold text-foreground">{sec.nombre}</h2>
+              <div className="flex items-center gap-2 mt-1.5">
+                <TitularAvatar name={sec.titular} className="w-6 h-6 text-[10px]" />
+                <p className="text-sm text-muted-foreground">{sec.titular}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-border my-4" />
+
+          <p className="text-xs font-medium text-muted-foreground mb-3">
+            Direcciones adscritas ({sec.direcciones.length})
+          </p>
+          {sec.direcciones.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">Sin direcciones registradas</p>
+          ) : (
+            <div className="space-y-1">
+              {sec.direcciones.map((dir) => (
+                <AreaRow
+                  key={dir}
+                  name={dir}
+                  icon={getAreaIcon(dir)}
+                  expanded={!!expandedAreas[dir]}
+                  onToggle={() => toggleArea(dir)}
+                  isOwn={dir === user.area}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // role === "direccion"
+  const parent = findParent(area);
+  return (
+    <div className="space-y-3">
+      {parent && (
+        <p className="text-xs text-muted-foreground">
+          Pertenece a <span className="font-medium text-foreground">{parent.label}</span>
+        </p>
+      )}
+      <AreaRow
+        name={area}
+        icon={getAreaIcon(area)}
+        expanded={!!expandedAreas[area]}
+        onToggle={() => toggleArea(area)}
+        isOwn
+      />
+    </div>
+  );
+}
+
 export default function OrganigramaPage() {
   const user = useAuth();
   const [search, setSearch] = useState("");
@@ -146,6 +252,20 @@ export default function OrganigramaPage() {
     setExpandedAreas((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  if (user.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Topbar
+          title="Organigrama"
+          subtitle={user.role === "secretario" ? "Tu secretaría y direcciones adscritas" : "Tu dirección"}
+        />
+        <div className="p-6">
+          <RestrictedOrganigrama user={user} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Topbar title="Organigrama" subtitle="Presidencia Municipal, Secretarías y bienes asignados por área" />
@@ -179,7 +299,7 @@ export default function OrganigramaPage() {
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-muted">
               <MagnifyingGlass className="w-7 h-7 text-muted-foreground/50" weight="duotone" />
             </div>
-            <p className="text-sm font-medium text-foreground">Sin resultados para "{q}"</p>
+            <p className="text-sm font-medium text-foreground">Sin resultados para &quot;{q}&quot;</p>
             <p className="text-xs text-muted-foreground">Intenta con el nombre de la secretaría, dirección o titular</p>
             <button
               type="button"
@@ -354,14 +474,29 @@ export default function OrganigramaPage() {
 
         {/* Otras áreas / organismos */}
         {otrasVisibles.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">Otras áreas / organismos</h2>
-            <div className="flex flex-wrap gap-2">
-              {otrasVisibles.map((a) => (
-                <span key={a} className="text-xs px-3 py-1.5 rounded-full bg-muted text-foreground border border-border hover:border-primary/30 hover:bg-accent transition-colors">{a}</span>
-              ))}
-            </div>
-          </div>
+          <Card className="border-border bg-card hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-accent text-primary">
+                <Buildings className="w-5 h-5" weight="duotone" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-semibold text-foreground">Otras áreas / organismos</h3>
+                <div className="space-y-1 mt-3">
+                  {otrasVisibles.map((a) => (
+                    <AreaRow
+                      key={a}
+                      name={a}
+                      icon={getAreaIcon(a)}
+                      expanded={!!expandedAreas[a]}
+                      onToggle={() => toggleArea(a)}
+                      isOwn={a === user.area}
+                      dense
+                    />
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <p className="text-xs text-muted-foreground/70 pt-2">

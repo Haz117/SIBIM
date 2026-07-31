@@ -12,6 +12,9 @@ import {
   Warning,
   SignOut,
   Buildings,
+  Crown,
+  ShieldCheck,
+  Briefcase,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +22,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useData } from "@/lib/store";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/components/auth-provider";
+import { isAreaAccessible } from "@/lib/access";
 import { useUI } from "@/components/layout/ui-context";
 import { logout } from "@/lib/auth-actions";
 import { initials } from "@/lib/format";
@@ -28,7 +32,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const user = useAuth();
   const { products, profileName, avatarUrl } = useData();
 
-  const scopedProducts = user.role === "admin" ? products : products.filter((p) => p.area === user.area);
+  const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
   const bienesEnAlerta = scopedProducts.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado").length;
   const totalBienes = scopedProducts.length;
 
@@ -120,7 +124,12 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-sidebar-foreground truncate">{profileName ?? user.nombre}</p>
-            <p className="text-xs text-muted-foreground truncate">{user.area ?? "Superusuario"}</p>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              {user.role === "admin" && <Crown className="w-3 h-3 text-primary flex-shrink-0" weight="fill" />}
+              {user.role === "secretario" && <ShieldCheck className="w-3 h-3 text-primary flex-shrink-0" weight="fill" />}
+              {user.role === "direccion" && <Briefcase className="w-3 h-3 flex-shrink-0" />}
+              <span className="truncate">{user.area ?? "Superusuario"}</span>
+            </div>
           </div>
           <form action={logout}>
             <button type="submit" aria-label="Cerrar sesión"

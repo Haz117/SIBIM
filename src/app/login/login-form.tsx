@@ -80,7 +80,8 @@ export function LoginForm() {
   }
 
   const admins = AUTH_USERS.filter((u) => u.role === "admin");
-  const areaUsers = AUTH_USERS.filter((u) => u.role === "area");
+  const secretarios = AUTH_USERS.filter((u) => u.role === "secretario");
+  const direcciones = AUTH_USERS.filter((u) => u.role === "direccion");
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
@@ -190,9 +191,17 @@ export function LoginForm() {
                   ))}
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Usuarios de área</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Secretarios (secretaría completa)</p>
                   <div className="space-y-0.5">
-                    {areaUsers.map((u) => (
+                    {secretarios.map((u) => (
+                      <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password} onPick={fillDemo} />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Direcciones (solo la suya)</p>
+                  <div className="space-y-0.5">
+                    {direcciones.map((u) => (
                       <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password} onPick={fillDemo} />
                     ))}
                   </div>
