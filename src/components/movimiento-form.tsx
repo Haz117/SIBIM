@@ -121,7 +121,8 @@ export function MovimientoForm({
       {/* Producto */}
       <div className="space-y-1.5">
         <Label className="text-muted-foreground text-xs">Producto *</Label>
-        <Select value={productoId} onValueChange={(v) => setProductoId(v ?? "")}>
+        <Select value={productoId} onValueChange={(v) => setProductoId(v ?? "")}
+          items={Object.fromEntries(products.map((p) => [p.id, `${p.nombre} — ${p.stock_actual} ${p.unidad}`]))}>
           <SelectTrigger className={`w-full bg-muted border-border text-foreground ${errClass("producto")}`}>
             <SelectValue placeholder="Seleccionar producto" />
           </SelectTrigger>

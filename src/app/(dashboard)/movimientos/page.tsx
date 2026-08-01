@@ -241,7 +241,8 @@ export default function MovimientosPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={filterTipo} onValueChange={(v) => setFilterTipo(v ?? "todos")}>
+              <Select value={filterTipo} onValueChange={(v) => setFilterTipo(v ?? "todos")}
+                items={{ todos: "Todos los tipos", ...Object.fromEntries((["entrada", "salida", "ajuste", "transferencia"] as MovementType[]).map((t) => [t, TIPO_CONFIG[t].label])) }}>
                 <SelectTrigger className="h-8 text-xs bg-muted/60 border-border text-foreground w-40">
                   <SelectValue placeholder="Todos los tipos" />
                 </SelectTrigger>
@@ -327,8 +328,8 @@ export default function MovimientosPage() {
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <Table>
-                <TableHeader className="sticky top-16 z-10 bg-card">
-                  <TableRow className="border-border hover:bg-transparent bg-card">
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-transparent">
                     <SortTh label="Tipo" field="tipo" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="pl-6" />
                     <SortTh label="Producto" field="producto" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                     <SortTh label="Cantidad" field="cantidad" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="text-center" />

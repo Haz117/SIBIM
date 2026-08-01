@@ -17,14 +17,15 @@ Sistema de control patrimonial para el H. Ayuntamiento: inventario de bienes mun
 ## Características
 
 - **Dashboard** con 6 indicadores patrimoniales (total de bienes, valor, existencias bajas, agotados, movimientos del día, categorías) que se recalculan según el área del usuario. Los indicadores son clicables y llevan a la sección correspondiente.
-- **Organigrama** interactivo: Despacho de la Presidencia, Secretarías y Direcciones, cada una expandible para ver los bienes asignados, con enlace directo al listado filtrado en Productos. El área del usuario en sesión se resalta automáticamente. Búsqueda con botón de limpiar en el propio campo.
+- **Organigrama** interactivo: Despacho de la Presidencia, Secretarías, Direcciones, Contraloría y otras áreas/organismos, cada una expandible para ver los bienes asignados, con enlace directo al listado filtrado en Productos. Los roles Secretario/a y Dirección ven una vista acotada a su propia secretaría/dirección (el árbol completo es exclusivo del superusuario). Búsqueda con botón de limpiar en el propio campo.
 - **Productos** (bienes patrimoniales): alta, edición, eliminación con deshacer, búsqueda ampliada (nombre, código, proveedor, ubicación, descripción), filtros por categoría/estado/área, ordenamiento por columna, paginación (10/25/50/100 por página) con reset automático y scroll al inicio, exportación a CSV y Excel. Vista de detalle con ficha completa. Tabla responsiva con vista de tarjetas en móvil.
 - **Categorías**: CRUD completo con validación de nombre único, conteo de bienes por categoría, íconos, colores y estado de uso.
-- **Movimientos**: registro de entradas, salidas, ajustes y transferencias; filtros por tipo, producto y rango de fechas; anulación con restauración automática de stock; paginación; exportación a CSV y Excel (deshabilitada con filtro vacío); vista de tarjetas en móvil.
-- **Alertas**: tres paneles (agotados, existencias bajas, garantías por vencer en 7 días). Pantalla "Todo en orden" cuando no hay alertas. Botones de acción con routing directo al bien.
-- **Reportes**: 7 tipos de reporte descargables en PDF y Excel (Inventario General, Bienes por Área, Movimientos, Alertas de Stock, Valoración, Auditoría, Garantías). Filtro por período predefinido o rango de fechas con validación de rango. Gráfico de stock por categoría.
-- **Configuración**: edición de nombre y foto de perfil (con validación de tamaño hasta 2 MB), selector de tema, panel de usuarios con acceso (admin), restablecimiento de datos de demo.
-- **Persistencia en localStorage**: bienes, categorías, movimientos, nombre de perfil y avatar sobreviven al recarga de página. El superusuario puede restablecer los datos de demo desde Configuración.
+- **Movimientos**: registro de entradas, salidas, ajustes (incluye fijar el stock exactamente en 0, ej. tras un conteo físico) y transferencias; filtros por tipo, producto y rango de fechas; ordenamiento por columna; anulación con restauración automática de stock; paginación; exportación a CSV y Excel (deshabilitada con filtro vacío); vista de tarjetas en móvil.
+- **Alertas**: tres paneles (agotados, existencias bajas, garantías por vencer en 7 días), accionables — "Reponer"/"Solicitar" abren un diálogo de movimiento con el bien ya preseleccionado para registrar el reabastecimiento sin salir de la página. Pantalla "Todo en orden" cuando no hay alertas.
+- **Reportes**: 7 tipos de reporte descargables en PDF y Excel (Inventario General, Bienes por Área, Movimientos, Alertas de Stock, Valoración, Auditoría, Garantías), con el escudo municipal en el encabezado del PDF y encabezado de tabla repetido en impresiones de varias páginas. Filtro por período predefinido o rango de fechas con validación de rango. Gráfico de stock por categoría.
+- **Configuración**: edición de nombre y foto de perfil, selector de tema, panel de usuarios con acceso (admin), restablecimiento de datos de demo.
+- **Fotos optimizadas automáticamente**: las fotos de bienes y de perfil (hasta 8 MB de origen) se redimensionan y recomprimen en el navegador antes de guardarse (`src/lib/image.ts`), evitando agotar la cuota de `localStorage`.
+- **Persistencia en localStorage**: bienes, categorías, movimientos, nombre de perfil y avatar sobreviven a la recarga de página; si el almacenamiento se llena, se muestra un aviso claro en vez de perder el cambio en silencio. El superusuario puede restablecer los datos de demo desde Configuración.
 - **Paleta de comandos** (`Ctrl+K`): búsqueda rápida de páginas y bienes desde cualquier parte de la app.
 - **Toasts** con variantes (éxito, error, info, advertencia) y botones de acción (ej. "Deshacer" al eliminar un bien).
 - **Login** con panel institucional, animación de entrada y lista de usuarios de prueba para explorar los distintos roles.
@@ -91,6 +92,7 @@ src/
     app-entrance.tsx             # animación al abrir/recargar la app
     command-palette.tsx          # búsqueda rápida Ctrl+K
     auth-provider.tsx            # contexto de usuario autenticado (useAuth)
+    movimiento-form.tsx          # formulario de movimiento, compartido entre Movimientos y Alertas
     layout/                      # Sidebar y Topbar
     ui/
       toast.tsx                  # sistema de notificaciones con acciones
@@ -99,6 +101,8 @@ src/
       date-input.tsx             # campo de fecha personalizado
   lib/
     store.tsx                    # DataProvider: estado global + persistencia localStorage
+    image.ts                     # compressImage(): redimensiona/recomprime fotos antes de guardarlas
+    use-dismissable-menu.ts      # hook Escape + click-afuera para overlays no modales
     mock-data.ts                 # bienes, categorías y movimientos de ejemplo
     auth-users.ts                # usuarios de demostración (roles y áreas)
     access.ts                    # alcance por rol (admin/secretario/dirección)
@@ -120,6 +124,7 @@ El tema por defecto es claro; el oscuro queda disponible desde el botón de la b
 ## Problemas conocidos
 
 - **Turbopack**: en desarrollo, si ves un error de compilación de `globals.css` con caracteres corruptos (`Unexpected token Number...`), es un bug conocido de la caché de Turbopack. Solución: detener el servidor, borrar la carpeta `.next` y volver a correr `npm run dev`.
+- **Encabezado de tabla fijo (`position: sticky`)**: se intentó y se revirtió deliberadamente en Productos/Movimientos. La tabla necesita scroll horizontal (`overflow-x-auto`) por el número de columnas, y la especificación CSS obliga a que `overflow-y` se compute como `auto` en cuanto `overflow-x` no es `visible` — esto crea un contenedor de scroll vertical no intencionado dentro de esa misma capa, y el encabezado `sticky` termina superponiéndose sobre la primera fila y bloqueando sus clics (confirmado con pruebas de interacción real, no solo visualmente). Si se retoma esta función, la forma correcta es darle a la tabla su propio contenedor con `max-height` + `overflow-y-auto` (scroll interno propio), no depender del scroll de la página.
 
 ## Roadmap hacia producción
 

@@ -37,6 +37,8 @@ import { compressImage } from "@/lib/image";
 import type { Product, ProductStatus } from "@/lib/types";
 import type { AuthUser } from "@/lib/auth-users";
 
+const UNIDADES = ["pieza", "unidad", "equipo", "juego", "lote", "kg", "litro"];
+
 const STATUS_CONFIG: Record<ProductStatus, { label: string; className: string }> = {
   activo: { label: "Activo", className: "bg-emerald-500/20 text-emerald-400 border-0" },
   bajo_stock: { label: "Bajo Stock", className: "bg-amber-500/20 text-amber-400 border-0" },
@@ -289,7 +291,8 @@ function ProductosContent() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={filterCat} onValueChange={(v) => setFilterCat(v ?? "todas")}>
+              <Select value={filterCat} onValueChange={(v) => setFilterCat(v ?? "todas")}
+                items={{ todas: "Todas las categorías", ...Object.fromEntries(categories.map((c) => [c.id, c.nombre])) }}>
                 <SelectTrigger className="h-8 text-xs bg-muted/60 border-border text-foreground w-44">
                   <SelectValue placeholder="Categoría" />
                 </SelectTrigger>
@@ -305,7 +308,8 @@ function ProductosContent() {
                 </SelectContent>
               </Select>
 
-              <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v ?? "todos")}>
+              <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v ?? "todos")}
+                items={{ todos: "Todos los estados", activo: "Activo", bajo_stock: "Bajo Stock", agotado: "Agotado", vencido: "Vencido" }}>
                 <SelectTrigger className="h-8 text-xs bg-muted/60 border-border text-foreground w-36">
                   <SelectValue placeholder="Estado" />
                 </SelectTrigger>
@@ -319,7 +323,8 @@ function ProductosContent() {
               </Select>
 
               {user.role !== "direccion" && (
-                <Select value={filterArea} onValueChange={(v) => setFilterArea(v ?? "todas")}>
+                <Select value={filterArea} onValueChange={(v) => setFilterArea(v ?? "todas")}
+                  items={{ todas: "Todas las áreas", ...Object.fromEntries(areasConBienes.map((a) => [a, a])) }}>
                   <SelectTrigger className="h-8 text-xs bg-muted/60 border-border text-foreground w-52">
                     <SelectValue placeholder="Área asignada" />
                   </SelectTrigger>
@@ -419,7 +424,7 @@ function ProductosContent() {
                     <SortTh label="Valor Actual" field="valor" sortField={sortField} sortDir={sortDir} onSort={toggleSort} className="text-right" />
                     <SortTh label="Garantía" field="garantia" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
                     <SortTh label="Estado" field="estado" sortField={sortField} sortDir={sortDir} onSort={toggleSort} />
-                    <TableHead className="sticky top-16 z-10 bg-card text-muted-foreground font-medium text-center">Acciones</TableHead>
+                    <TableHead className="text-muted-foreground font-medium text-center">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -585,7 +590,7 @@ function SortTh({ label, field, sortField, sortDir, onSort, className }: {
 }) {
   const active = sortField === field;
   return (
-    <TableHead className={`sticky top-16 z-10 bg-card ${className ?? ""}`}>
+    <TableHead className={className}>
       <button type="button" onClick={() => onSort(field)}
         className="flex items-center gap-1 font-medium hover:text-foreground transition-colors group whitespace-nowrap">
         {label}
@@ -706,6 +711,10 @@ function ProductForm({
   const scopedProducts = useMemo(
     () => (user.role === "admin" ? allProducts : allProducts.filter((p) => isAreaAccessible(user, p.area))),
     [allProducts, user]
+  );
+  const areaOptions = useMemo(
+    () => (user.role === "admin" ? ALL_AREA_NAMES : Array.from(getAccessibleAreas(user) ?? [])),
+    [user]
   );
   const [submitted, setSubmitted] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(product?.foto_url ?? "");
@@ -844,7 +853,8 @@ function ProductForm({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Categoría <span className="text-destructive">*</span></Label>
-          <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v ?? "")}>
+          <Select value={form.categoria_id} onValueChange={(v) => set("categoria_id", v ?? "")}
+            items={Object.fromEntries(categories.map((c) => [c.id, c.nombre]))}>
             <SelectTrigger className={`bg-muted border-border text-foreground ${errClass("categoria_id")}`}>
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
@@ -860,12 +870,13 @@ function ProductForm({
         </div>
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">Unidad de Medida</Label>
-          <Select value={form.unidad} onValueChange={(v) => set("unidad", v ?? "pieza")}>
+          <Select value={form.unidad} onValueChange={(v) => set("unidad", v ?? "pieza")}
+            items={Object.fromEntries(UNIDADES.map((u) => [u, u]))}>
             <SelectTrigger className="bg-muted border-border text-foreground">
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent className="border-border" style={{ background: "var(--card)" }}>
-              {["pieza", "unidad", "equipo", "juego", "lote", "kg", "litro"].map((u) => (
+              {UNIDADES.map((u) => (
                 <SelectItem key={u} value={u} className="text-foreground">{u}</SelectItem>
               ))}
             </SelectContent>
@@ -878,12 +889,13 @@ function ProductForm({
         {user.role === "direccion" ? (
           <Input value={user.area ?? ""} disabled className="bg-muted border-border text-foreground disabled:opacity-100" />
         ) : (
-          <Select value={form.area} onValueChange={(v) => set("area", v ?? "")}>
+          <Select value={form.area} onValueChange={(v) => set("area", v ?? "")}
+            items={Object.fromEntries(areaOptions.map((a) => [a, a]))}>
             <SelectTrigger className="bg-muted border-border text-foreground">
               <SelectValue placeholder="Secretaría o dirección responsable" />
             </SelectTrigger>
             <SelectContent className="border-border max-h-64" style={{ background: "var(--card)" }}>
-              {(user.role === "admin" ? ALL_AREA_NAMES : Array.from(getAccessibleAreas(user) ?? [])).map((a) => (
+              {areaOptions.map((a) => (
                 <SelectItem key={a} value={a} className="text-foreground text-sm">{a}</SelectItem>
               ))}
             </SelectContent>
