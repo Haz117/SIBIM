@@ -1,61 +1,17 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, useEffect } from "react"
-import {
-  mockProducts as initialProducts,
-  mockCategories as initialCategories,
-  mockMovements as initialMovements,
-} from "@/lib/mock-data"
-import { useToast } from "@/components/ui/toast"
+import { createContext, useContext, useState, useCallback } from "react"
 import type { Product, Category, Movement } from "@/lib/types"
-
-const STORAGE_FULL_MESSAGE =
-  "No se pudo guardar: el almacenamiento local está lleno. Elimina fotos o bienes para liberar espacio."
-
-const KEYS = {
-  products:   "sibim_products",
-  categories: "sibim_categories",
-  movements:  "sibim_movements",
-  profileName: "sibim_profileName",
-  avatarUrl:  "sibim_avatarUrl",
-}
-
-function resolveProducts(raw: Product[], cats: Category[]): Product[] {
-  return raw.map((p) => ({ ...p, categoria: cats.find((c) => c.id === p.categoria_id) }))
-}
-
-function resolveMovements(raw: Movement[], prods: Product[]): Movement[] {
-  return raw.map((m) => ({ ...m, producto: prods.find((p) => p.id === m.producto_id) }))
-}
-
-function load<T>(key: string, fallback: T[]): T[] {
-  if (typeof window === "undefined") return [...fallback]
-  try {
-    const raw = localStorage.getItem(key)
-    if (raw) return JSON.parse(raw) as T[]
-  } catch {}
-  return [...fallback]
-}
-
-function save(key: string, value: unknown): boolean {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-    return true
-  } catch {
-    return false
-  }
-}
-
-// profileName/avatarUrl are stored as plain strings (read back via getItem
-// with no JSON.parse), so they skip the JSON.stringify save() does above.
-function saveRaw(key: string, value: string): boolean {
-  try {
-    localStorage.setItem(key, value)
-    return true
-  } catch {
-    return false
-  }
-}
+import {
+  dbAddProduct,
+  dbUpdateProduct,
+  dbDeleteProduct,
+  dbAddCategory,
+  dbUpdateCategory,
+  dbDeleteCategory,
+  dbAddMovement,
+  dbDeleteMovement,
+} from "@/lib/db-actions"
 
 interface DataStore {
   products: Product[]
@@ -79,88 +35,82 @@ interface DataStore {
 
 const DataContext = createContext<DataStore | null>(null)
 
-export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { toast } = useToast()
-  const [categories, setCategories] = useState<Category[]>(() => load(KEYS.categories, initialCategories))
+export function DataProvider({
+  children,
+  initialProducts = [],
+  initialCategories = [],
+  initialMovements = [],
+}: {
+  children: React.ReactNode
+  initialProducts?: Product[]
+  initialCategories?: Category[]
+  initialMovements?: Movement[]
+}) {
+  const [categories, setCategories] = useState<Category[]>(initialCategories)
+  const [products, setProducts] = useState<Product[]>(initialProducts)
+  const [movements, setMovements] = useState<Movement[]>(initialMovements)
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    const cats = load<Category>(KEYS.categories, initialCategories)
-    const prods = load<Product>(KEYS.products, initialProducts)
-    return resolveProducts(prods, cats)
-  })
-
-  const [movements, setMovements] = useState<Movement[]>(() => {
-    const cats = load<Category>(KEYS.categories, initialCategories)
-    const prods = resolveProducts(load<Product>(KEYS.products, initialProducts), cats)
-    const movs = load<Movement>(KEYS.movements, initialMovements)
-    return resolveMovements(movs, prods)
-  })
-
+  // Preferencias de usuario — se mantienen en localStorage (no son datos de inventario)
   const [profileName, setProfileNameState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null
-    return localStorage.getItem(KEYS.profileName)
+    return localStorage.getItem("sibim_profileName")
   })
 
   const [avatarUrl, setAvatarUrlState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null
-    return localStorage.getItem(KEYS.avatarUrl)
+    return localStorage.getItem("sibim_avatarUrl")
   })
-
-  // Persist state changes — surface a toast instead of silently swallowing a
-  // QuotaExceededError, since a failed save here means the change is lost on
-  // the next reload with no other indication to the user.
-  useEffect(() => { if (!save(KEYS.products, products)) toast(STORAGE_FULL_MESSAGE, "error") }, [products, toast])
-  useEffect(() => { if (!save(KEYS.categories, categories)) toast(STORAGE_FULL_MESSAGE, "error") }, [categories, toast])
-  useEffect(() => { if (!save(KEYS.movements, movements)) toast(STORAGE_FULL_MESSAGE, "error") }, [movements, toast])
 
   const setProfileName = useCallback((name: string) => {
     setProfileNameState(name)
-    if (!saveRaw(KEYS.profileName, name)) toast(STORAGE_FULL_MESSAGE, "error")
-  }, [toast])
+    localStorage.setItem("sibim_profileName", name)
+  }, [])
 
   const setAvatarUrl = useCallback((url: string | null) => {
     setAvatarUrlState(url)
-    if (url) {
-      if (!saveRaw(KEYS.avatarUrl, url)) toast(STORAGE_FULL_MESSAGE, "error")
-    } else {
-      localStorage.removeItem(KEYS.avatarUrl)
-    }
-  }, [toast])
-
-  const resetData = useCallback(() => {
-    localStorage.removeItem(KEYS.products)
-    localStorage.removeItem(KEYS.categories)
-    localStorage.removeItem(KEYS.movements)
-    setCategories([...initialCategories])
-    setProducts([...initialProducts])
-    setMovements([...initialMovements])
+    if (url) localStorage.setItem("sibim_avatarUrl", url)
+    else localStorage.removeItem("sibim_avatarUrl")
   }, [])
+
+  // Recarga la página para obtener datos frescos del servidor
+  const resetData = useCallback(() => {
+    window.location.reload()
+  }, [])
+
+  // ── Productos ──────────────────────────────────────────────
 
   const addProduct = useCallback((data: Omit<Product, "id" | "created_at" | "updated_at">) => {
     const id = crypto.randomUUID()
-    setProducts((prev) => [
-      { ...data, id, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-      ...prev,
-    ])
+    const now = new Date().toISOString()
+    const product: Product = { ...data, id, created_at: now, updated_at: now }
+    setProducts((prev) => [product, ...prev])
+    dbAddProduct(product).catch(console.error)
   }, [])
 
   const restoreProduct = useCallback((p: Product) => {
     setProducts((prev) => [p, ...prev])
+    dbAddProduct(p).catch(console.error)
   }, [])
 
   const updateProduct = useCallback((id: string, updates: Partial<Omit<Product, "id" | "created_at">>) => {
     setProducts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
     )
+    dbUpdateProduct(id, updates).catch(console.error)
   }, [])
 
   const deleteProduct = useCallback((id: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== id))
+    dbDeleteProduct(id).catch(console.error)
   }, [])
+
+  // ── Categorías ─────────────────────────────────────────────
 
   const addCategory = useCallback((data: Omit<Category, "id" | "created_at">) => {
     const id = crypto.randomUUID()
-    setCategories((prev) => [...prev, { ...data, id, created_at: new Date().toISOString() }])
+    const category: Category = { ...data, id, created_at: new Date().toISOString() }
+    setCategories((prev) => [...prev, category])
+    dbAddCategory(category).catch(console.error)
   }, [])
 
   const updateCategory = useCallback((id: string, updates: Partial<Omit<Category, "id">>) => {
@@ -172,39 +122,48 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           : p
       )
     )
+    dbUpdateCategory(id, updates).catch(console.error)
   }, [])
 
   const deleteCategory = useCallback((id: string) => {
     setCategories((prev) => prev.filter((c) => c.id !== id))
+    dbDeleteCategory(id).catch(console.error)
   }, [])
+
+  // ── Movimientos ────────────────────────────────────────────
 
   const addMovement = useCallback((data: Omit<Movement, "id" | "created_at">) => {
     const id = crypto.randomUUID()
-    setMovements((prev) => [{ ...data, id, created_at: new Date().toISOString() }, ...prev])
+    const now = new Date().toISOString()
+    const movement: Movement = { ...data, id, created_at: now }
+
+    setMovements((prev) => [movement, ...prev])
     setProducts((prev) =>
       prev.map((p) => {
         if (p.id !== data.producto_id) return p
         const newStock = data.stock_nuevo
         const estado: Product["estado"] =
           newStock === 0 ? "agotado" : newStock <= p.stock_minimo ? "bajo_stock" : "activo"
-        return { ...p, stock_actual: newStock, estado, updated_at: new Date().toISOString() }
+        return { ...p, stock_actual: newStock, estado, updated_at: now }
       })
     )
+    dbAddMovement(movement).catch(console.error)
   }, [])
 
   const deleteMovement = useCallback((id: string) => {
     setMovements((prev) => {
       const mov = prev.find((m) => m.id === id)
       if (mov) {
+        const restoredStock = mov.stock_anterior
         setProducts((products) =>
           products.map((p) => {
             if (p.id !== mov.producto_id) return p
-            const restoredStock = mov.stock_anterior
             const estado: Product["estado"] =
               restoredStock === 0 ? "agotado" : restoredStock <= p.stock_minimo ? "bajo_stock" : "activo"
             return { ...p, stock_actual: restoredStock, estado, updated_at: new Date().toISOString() }
           })
         )
+        dbDeleteMovement(id, mov.producto_id, restoredStock).catch(console.error)
       }
       return prev.filter((m) => m.id !== id)
     })

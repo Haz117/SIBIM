@@ -7,6 +7,7 @@ import { AlertBanner } from "@/components/alert-banner";
 import { DataProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui/toast";
 import { getSession } from "@/lib/session";
+import { dbGetProducts, dbGetCategories, dbGetMovements } from "@/lib/db";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
@@ -14,10 +15,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/login");
   }
 
+  const [products, categories, movements] = await Promise.all([
+    dbGetProducts(),
+    dbGetCategories(),
+    dbGetMovements(),
+  ]);
+
   return (
     <AuthProvider user={user}>
       <ToastProvider>
-        <DataProvider>
+        <DataProvider
+          initialProducts={products}
+          initialCategories={categories}
+          initialMovements={movements}
+        >
           <UIProvider>
             <div className="flex h-screen overflow-hidden">
               <Sidebar />

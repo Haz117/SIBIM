@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { findUserByCredentials } from "./auth-users";
+import { dbFindUserByCredentials } from "./db";
 import { createSession, deleteSession } from "./session";
 
 export interface LoginState {
@@ -16,7 +16,7 @@ export async function login(_prevState: LoginState | undefined, formData: FormDa
     return { error: "Ingresa tu usuario y contraseña" };
   }
 
-  const user = findUserByCredentials(username, password);
+  const user = await dbFindUserByCredentials(username, password);
   if (!user) {
     return { error: "Usuario o contraseña incorrectos" };
   }

@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { AuthUser, findUserById } from "./auth-users";
+import { AuthUser } from "./auth-users";
+import { dbFindUserById } from "./db";
 
 const COOKIE_NAME = "session";
 
@@ -24,7 +25,7 @@ export async function getSession(): Promise<AuthUser | null> {
   const cookieStore = await cookies();
   const userId = cookieStore.get(COOKIE_NAME)?.value;
   if (!userId) return null;
-  return findUserById(userId);
+  return dbFindUserById(userId);
 }
 
 export async function deleteSession() {
