@@ -818,7 +818,7 @@ function ProductForm({
     submitted && errors[field] ? "border-destructive focus-visible:ring-destructive/20" : "";
 
   return (
-    <form className="space-y-4 max-h-[70vh] overflow-y-auto pr-1"
+    <form className="space-y-4"
       onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       {/* Foto */}
       <label className="border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-primary/40 transition-colors cursor-pointer flex flex-col items-center gap-2 relative">

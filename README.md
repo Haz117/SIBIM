@@ -28,6 +28,7 @@ Sistema de control patrimonial para el H. Ayuntamiento: inventario de bienes mun
 - **Persistencia en localStorage**: bienes, categorías, movimientos, nombre de perfil y avatar sobreviven a la recarga de página; si el almacenamiento se llena, se muestra un aviso claro en vez de perder el cambio en silencio. El superusuario puede restablecer los datos de demo desde Configuración.
 - **Paleta de comandos** (`Ctrl+K`): búsqueda rápida de páginas y bienes desde cualquier parte de la app.
 - **Toasts** con variantes (éxito, error, info, advertencia) y botones de acción (ej. "Deshacer" al eliminar un bien).
+- **Campo de fecha con calendario propio**: el selector de "Vencimiento de garantía" y los filtros por rango de fecha usan un calendario construido a la medida (mes navegable, hoy resaltado, atajo "Hoy"/"Limpiar") en vez del selector nativo del navegador, y valida que la fecha exista de verdad (rechaza combinaciones imposibles como 31/02).
 - **Login** con panel institucional, animación de entrada y lista de usuarios de prueba para explorar los distintos roles.
 - **Animación de apertura** (splash con logo) al abrir o recargar, sin repetirse en la navegación interna.
 - Tema claro/oscuro persistente (`next-themes`), configurable desde la barra superior o desde Configuración.
@@ -125,6 +126,7 @@ El tema por defecto es claro; el oscuro queda disponible desde el botón de la b
 
 - **Turbopack**: en desarrollo, si ves un error de compilación de `globals.css` con caracteres corruptos (`Unexpected token Number...`), es un bug conocido de la caché de Turbopack. Solución: detener el servidor, borrar la carpeta `.next` y volver a correr `npm run dev`.
 - **Encabezado de tabla fijo (`position: sticky`)**: se intentó y se revirtió deliberadamente en Productos/Movimientos. La tabla necesita scroll horizontal (`overflow-x-auto`) por el número de columnas, y la especificación CSS obliga a que `overflow-y` se compute como `auto` en cuanto `overflow-x` no es `visible` — esto crea un contenedor de scroll vertical no intencionado dentro de esa misma capa, y el encabezado `sticky` termina superponiéndose sobre la primera fila y bloqueando sus clics (confirmado con pruebas de interacción real, no solo visualmente). Si se retoma esta función, la forma correcta es darle a la tabla su propio contenedor con `max-height` + `overflow-y-auto` (scroll interno propio), no depender del scroll de la página.
+- **Mismo gotcha de `overflow-x`/`overflow-y`, esta vez en `Dialog`**: `DialogContent` (`src/components/ui/dialog.tsx`) ahora tiene `max-h-[calc(100dvh-2rem)] overflow-y-auto` para que los formularios largos (ej. alta de bien) no se corten fuera de la pantalla sin poder hacer scroll. Efecto colateral de ese mismo principio CSS: cualquier popover interno que se posicione con `absolute` cerca del borde del diálogo queda recortado horizontalmente. Por eso el calendario de `date-input.tsx` se renderiza en un portal a `document.body` con posición `fixed` calculada por `getBoundingClientRect`, en vez de vivir dentro del árbol del diálogo — si se agrega otro popover "casero" dentro de un modal, debe seguir el mismo patrón.
 
 ## Roadmap hacia producción
 
