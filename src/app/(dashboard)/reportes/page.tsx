@@ -323,7 +323,7 @@ export default function ReportesPage() {
                   <div key={cat.id}>
                     <div className="flex justify-between mb-1">
                       <span className="text-xs text-muted-foreground">{cat.name}</span>
-                      <span className="text-xs font-medium text-foreground">${cat.valor.toFixed(0)}</span>
+                      <span className="text-xs font-medium text-foreground">${cat.valor.toLocaleString("es-MX")}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-accent overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${Math.min((cat.valor / maxVal) * 100, 100)}%`, background: cat.color }} />

@@ -209,13 +209,13 @@ export function LoginForm() {
               </div>
             )}
           </div>
-        </div>
 
           {/* Footer */}
           <p className="mt-6 text-center text-[10px] text-muted-foreground/60 animate-in fade-in duration-700"
             style={{ animationDelay: "350ms", animationFillMode: "backwards" }}>
             H. Ayuntamiento Municipal · SIBIM · Sistema Integral de Bienes Municipales
           </p>
+        </div>
       </div>
     </div>
   );
