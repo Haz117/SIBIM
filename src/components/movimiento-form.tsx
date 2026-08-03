@@ -10,6 +10,7 @@ import {
 import {
   ArrowUp, ArrowDown, ArrowsLeftRight, Equalizer, WarningCircle,
 } from "@phosphor-icons/react";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useData } from "@/lib/store";
 import type { MovementType, Product } from "@/lib/types";
@@ -19,10 +20,10 @@ export const TIPO_CONFIG: Record<MovementType, {
   label: string; icon: React.ReactNode;
   color: string; bg: string; hex: string; hexBg: string;
 }> = {
-  entrada: { label: "Entrada", icon: <ArrowUp className="w-4 h-4" />, color: "text-emerald-400", bg: "bg-emerald-500/15", hex: "#10B981", hexBg: "rgba(16,185,129,0.15)" },
-  salida: { label: "Salida", icon: <ArrowDown className="w-4 h-4" />, color: "text-red-400", bg: "bg-red-500/15", hex: "#EF4444", hexBg: "rgba(239,68,68,0.15)" },
-  ajuste: { label: "Ajuste", icon: <Equalizer className="w-4 h-4" />, color: "text-purple-400", bg: "bg-purple-500/15", hex: "#A78BFA", hexBg: "rgba(167,139,250,0.15)" },
-  transferencia: { label: "Transferencia", icon: <ArrowsLeftRight className="w-4 h-4" />, color: "text-blue-400", bg: "bg-blue-500/15", hex: "#3B82F6", hexBg: "rgba(59,130,246,0.15)" },
+  entrada: { label: "Entrada", icon: <ArrowUp className="w-4 h-4" />, color: "text-teal-500", bg: "bg-teal-500/15", hex: "#14B8A6", hexBg: "rgba(20,184,166,0.15)" },
+  salida: { label: "Salida", icon: <ArrowDown className="w-4 h-4" />, color: "text-rose-500", bg: "bg-rose-500/15", hex: "#F43F5E", hexBg: "rgba(244,63,94,0.15)" },
+  ajuste: { label: "Ajuste", icon: <Equalizer className="w-4 h-4" />, color: "text-amber-500", bg: "bg-amber-500/15", hex: "#F59E0B", hexBg: "rgba(245,158,11,0.15)" },
+  transferencia: { label: "Transferencia", icon: <ArrowsLeftRight className="w-4 h-4" />, color: "text-indigo-400", bg: "bg-indigo-500/15", hex: "#818CF8", hexBg: "rgba(129,140,248,0.15)" },
 };
 
 export function MovimientoForm({
@@ -98,7 +99,10 @@ export function MovimientoForm({
     <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       {/* Tipo */}
       <div className="space-y-2">
-        <Label className="text-muted-foreground text-xs">Tipo de Movimiento *</Label>
+        <Label className="text-muted-foreground text-xs flex items-center gap-1">
+          Tipo de Movimiento *
+          <HelpTooltip text="Entrada: suma stock. Salida: resta stock. Ajuste: establece un valor absoluto. Transferencia: mueve unidades a otra área." />
+        </Label>
         <div className="grid grid-cols-4 gap-2">
           {(["entrada", "salida", "ajuste", "transferencia"] as MovementType[]).map((t) => {
             const cfg = TIPO_CONFIG[t];

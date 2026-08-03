@@ -163,8 +163,8 @@ export default function MovimientosPage() {
                       <span style={{ color: cfg.hex }}>{cfg.icon}</span>
                     </div>
                     {tipo === "entrada"
-                      ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
-                      : <ArrowDownRight className="w-3.5 h-3.5 text-red-400 opacity-60" />}
+                      ? <ArrowUpRight className="w-3.5 h-3.5 text-teal-500" />
+                      : <ArrowDownRight className="w-3.5 h-3.5 text-rose-500 opacity-70" />}
                   </div>
                   <p className="text-2xl font-bold text-foreground leading-none">{qty}</p>
                   <p className="text-xs mt-1 text-muted-foreground">{cfg.label}s</p>
@@ -312,7 +312,7 @@ export default function MovimientosPage() {
                             {new Date(mov.created_at).toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
                           </p>
                           <Button variant="ghost" size="icon"
-                            className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                            className="h-7 w-7 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
                             aria-label={`Anular movimiento de ${mov.producto?.nombre ?? "producto"}`}
                             onClick={() => setDeleteMovId(mov.id)}>
                             <Prohibit className="w-3 h-3" weight="duotone" />
@@ -386,7 +386,7 @@ export default function MovimientosPage() {
                         </TableCell>
                         <TableCell className="text-center pr-4">
                           <Button variant="ghost" size="icon"
-                            className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                            className="h-7 w-7 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
                             title="Anular movimiento"
                             aria-label={`Anular movimiento de ${mov.producto?.nombre ?? "producto"}`}
                             onClick={(e) => { e.stopPropagation(); setDeleteMovId(mov.id); }}>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,6 +20,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useData } from "@/lib/store";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/components/auth-provider";
@@ -30,6 +32,7 @@ import { initials } from "@/lib/format";
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const user = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { products, profileName, avatarUrl } = useData();
 
   const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
@@ -131,14 +134,25 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
               <span className="truncate">{user.area ?? "Superusuario"}</span>
             </div>
           </div>
-          <form action={logout}>
-            <button type="submit" aria-label="Cerrar sesión"
-              className="text-sidebar-foreground/30 group-hover:text-sidebar-foreground/60 hover:text-red-400! flex-shrink-0 transition-colors">
-              <SignOut className="w-4 h-4" />
-            </button>
-          </form>
+          <button
+            type="button"
+            aria-label="Cerrar sesión"
+            onClick={() => setShowLogoutConfirm(true)}
+            className="text-sidebar-foreground/30 group-hover:text-sidebar-foreground/60 hover:text-rose-500! flex-shrink-0 transition-colors"
+          >
+            <SignOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="¿Cerrar sesión?"
+        description="Se cerrará tu sesión actual. Tendrás que iniciar sesión de nuevo para acceder al sistema."
+        confirmLabel="Cerrar sesión"
+        onConfirm={() => logout()}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function ConfiguracionPage() {
                         style={{ minWidth: 0, width: Math.max(nameInput.length, 8) + "ch" }}
                       />
                       <button type="button" onClick={saveName}
-                        className="w-6 h-6 rounded-md flex items-center justify-center bg-emerald-500/20 text-emerald-500 hover:bg-emerald-500/30 transition-colors">
+                        className="w-6 h-6 rounded-md flex items-center justify-center bg-teal-500/20 text-teal-500 hover:bg-teal-500/30 transition-colors">
                         <Check className="w-3 h-3" weight="bold" />
                       </button>
                       <button type="button" onClick={() => setEditingName(false)}
@@ -182,7 +182,7 @@ export default function ConfiguracionPage() {
                   <button
                     type="button"
                     onClick={() => { setAvatarUrl(null); toast("Foto de perfil eliminada", "info"); }}
-                    className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors mt-1"
+                    className="text-[10px] text-muted-foreground hover:text-rose-500 transition-colors mt-1"
                   >
                     Eliminar foto
                   </button>
@@ -198,7 +198,7 @@ export default function ConfiguracionPage() {
                 <p className="text-sm text-foreground mt-1">{user.area ?? "Todas las áreas (acceso total)"}</p>
               </div>
               <form action={logout}>
-                <Button type="submit" variant="outline" size="sm" className="gap-1.5 border-border text-muted-foreground hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30">
+                <Button type="submit" variant="outline" size="sm" className="gap-1.5 border-border text-muted-foreground hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30">
                   <SignOut className="w-3.5 h-3.5" /> Cerrar sesión
                 </Button>
               </form>

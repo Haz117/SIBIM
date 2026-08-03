@@ -32,6 +32,7 @@ import { useData } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { downloadCSV, downloadExcel } from "@/lib/export";
 import { Pagination } from "@/components/ui/pagination";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useDismissableMenu } from "@/lib/use-dismissable-menu";
 import { compressImage } from "@/lib/image";
 import type { Product, ProductStatus } from "@/lib/types";
@@ -40,10 +41,10 @@ import type { AuthUser } from "@/lib/auth-users";
 const UNIDADES = ["pieza", "unidad", "equipo", "juego", "lote", "kg", "litro"];
 
 const STATUS_CONFIG: Record<ProductStatus, { label: string; className: string }> = {
-  activo: { label: "Activo", className: "bg-emerald-500/20 text-emerald-400 border-0" },
-  bajo_stock: { label: "Bajo Stock", className: "bg-amber-500/20 text-amber-400 border-0" },
-  agotado: { label: "Agotado", className: "bg-red-500/20 text-red-400 border-0" },
-  vencido: { label: "Vencido", className: "bg-gray-500/20 text-gray-400 border-0" },
+  activo: { label: "Activo", className: "bg-teal-500/15 text-teal-500 border-0" },
+  bajo_stock: { label: "Bajo Stock", className: "bg-amber-500/15 text-amber-500 border-0" },
+  agotado: { label: "Agotado", className: "bg-rose-500/15 text-rose-500 border-0" },
+  vencido: { label: "Vencido", className: "bg-purple-500/15 text-purple-500 border-0" },
 };
 
 function ProductosSkeleton() {
@@ -383,8 +384,8 @@ function ProductosContent() {
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-3 text-xs">
                         <span className={`font-bold ${
-                          product.estado === "agotado" ? "text-red-400" :
-                          product.estado === "bajo_stock" ? "text-amber-400" : "text-foreground"
+                          product.estado === "agotado" ? "text-rose-500" :
+                          product.estado === "bajo_stock" ? "text-amber-500" : "text-foreground"
                         }`}>{product.stock_actual} {product.unidad}</span>
                         <span className="text-muted-foreground">${product.precio_venta.toLocaleString("es-MX", { minimumFractionDigits: 0 })}</span>
                       </div>
@@ -399,7 +400,7 @@ function ProductosContent() {
                           onClick={() => setEditTarget(product)}>
                           <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
                           aria-label={`Eliminar ${product.nombre}`}
                           onClick={() => setDeleteId(product.id)}>
                           <Trash className="w-3.5 h-3.5" weight="duotone" />
@@ -461,8 +462,8 @@ function ProductosContent() {
                       <TableCell className="text-right">
                         <div>
                           <span className={`font-bold text-sm ${
-                            product.estado === "agotado" ? "text-red-400" :
-                            product.estado === "bajo_stock" ? "text-amber-400" : "text-foreground"
+                            product.estado === "agotado" ? "text-rose-500" :
+                            product.estado === "bajo_stock" ? "text-amber-500" : "text-foreground"
                           }`}>{product.stock_actual}</span>
                           <span className="text-xs text-muted-foreground ml-1">{product.unidad}</span>
                         </div>
@@ -495,7 +496,7 @@ function ProductosContent() {
                             onClick={() => setEditTarget(product)}>
                             <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
                             aria-label={`Eliminar ${product.nombre}`}
                             onClick={() => setDeleteId(product.id)}>
                             <Trash className="w-3.5 h-3.5" weight="duotone" />
@@ -605,7 +606,7 @@ function SortTh({ label, field, sortField, sortDir, onSort, className }: {
 // ─── Product Detail (view-only) ──────────────────────────────────────────────
 
 const TIPO_DOT: Record<string, string> = {
-  entrada: "#10B981", salida: "#EF4444", ajuste: "#A78BFA", transferencia: "#3B82F6",
+  entrada: "#14B8A6", salida: "#F43F5E", ajuste: "#F59E0B", transferencia: "#818CF8",
 };
 const TIPO_LABEL: Record<string, string> = {
   entrada: "Entrada", salida: "Salida", ajuste: "Ajuste", transferencia: "Transferencia",
@@ -929,18 +930,27 @@ function ProductForm({
 
       <div className="grid grid-cols-3 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Stock Mínimo</Label>
+          <Label className="text-muted-foreground text-xs flex items-center gap-1">
+            Stock Mínimo
+            <HelpTooltip text="El sistema generará una alerta cuando las existencias bajen de este número." />
+          </Label>
           <Input type="number" min="0" value={form.stock_minimo} onChange={(e) => set("stock_minimo", e.target.value)}
             className={`bg-muted border-border text-foreground ${errClass("stock_minimo")}`} placeholder="0" />
           <FieldError msg={submitted ? errors.stock_minimo : undefined} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Stock Máximo</Label>
+          <Label className="text-muted-foreground text-xs flex items-center gap-1">
+            Stock Máximo
+            <HelpTooltip text="Tope de inventario esperado. Se usa para calcular el porcentaje de ocupación en reportes." />
+          </Label>
           <Input type="number" min="0" value={form.stock_maximo} onChange={(e) => set("stock_maximo", e.target.value)}
             className="bg-muted border-border text-foreground" placeholder="0" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Vencimiento de Garantía</Label>
+          <Label className="text-muted-foreground text-xs flex items-center gap-1">
+            Vencimiento de Garantía
+            <HelpTooltip text="Opcional. Si se establece, el sistema alertará 30 días antes del vencimiento." />
+          </Label>
           <DateInput value={form.fecha_vencimiento} onChange={(e) => set("fecha_vencimiento", e.target.value)} />
         </div>
       </div>

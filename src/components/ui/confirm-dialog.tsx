@@ -25,10 +25,10 @@ export function ConfirmDialog({
       <DialogContent className="max-w-sm border-border" style={{ background: "var(--card)" }}>
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${destructive ? "bg-red-500/10" : "bg-amber-500/10"}`}>
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${destructive ? "bg-rose-500/10" : "bg-amber-500/10"}`}>
               {destructive
-                ? <Trash className="w-5 h-5 text-red-400" weight="duotone" />
-                : <WarningOctagon className="w-5 h-5 text-amber-400" weight="duotone" />}
+                ? <Trash className="w-5 h-5 text-rose-500" weight="duotone" />
+                : <WarningOctagon className="w-5 h-5 text-amber-500" weight="duotone" />}
             </div>
             <DialogTitle className="text-foreground text-base">{title}</DialogTitle>
           </div>
@@ -41,7 +41,7 @@ export function ConfirmDialog({
           <Button
             onClick={onConfirm}
             className="flex-1 text-white"
-            style={{ background: destructive ? "#EF4444" : "var(--primary)" }}
+            style={{ background: destructive ? "#F43F5E" : "var(--primary)" }}
           >
             {confirmLabel}
           </Button>

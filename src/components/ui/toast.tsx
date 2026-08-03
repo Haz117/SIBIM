@@ -26,9 +26,9 @@ const Ctx = createContext<ToastCtx>({ toast: () => {} })
 export const useToast = () => useContext(Ctx)
 
 const CONFIG = {
-  success: { icon: CheckCircle, color: "#10B981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" },
-  error: { icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.3)" },
-  info: { icon: Info, color: "#3B82F6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)" },
+  success: { icon: CheckCircle, color: "#14B8A6", bg: "rgba(20,184,166,0.12)", border: "rgba(20,184,166,0.3)" },
+  error: { icon: XCircle, color: "#F43F5E", bg: "rgba(244,63,94,0.12)", border: "rgba(244,63,94,0.3)" },
+  info: { icon: Info, color: "#8B5CF6", bg: "rgba(139,92,246,0.12)", border: "rgba(139,92,246,0.3)" },
   warning: { icon: WarningOctagon, color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)" },
 } as const
 

@@ -166,7 +166,7 @@ export default function CategoriasPage() {
                           onClick={() => setEditTarget(cat)}>
                           <PencilSimple className="w-3.5 h-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-500/10 text-muted-foreground hover:text-red-400"
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500"
                           aria-label={`Eliminar ${cat.nombre}`}
                           onClick={() => setDeleteId(cat.id)}>
                           <Trash className="w-3.5 h-3.5" />
@@ -182,8 +182,8 @@ export default function CategoriasPage() {
                       <p className="text-lg font-bold" style={{ color: cat.color }}>{productos.length}</p>
                       <p className="text-[10px] text-muted-foreground">Total</p>
                     </div>
-                    <div className="rounded-lg py-2 px-1 bg-emerald-500/10">
-                      <p className="text-lg font-bold text-emerald-500">{activos}</p>
+                    <div className="rounded-lg py-2 px-1 bg-teal-500/10">
+                      <p className="text-lg font-bold text-teal-500">{activos}</p>
                       <p className="text-[10px] text-muted-foreground">Activos</p>
                     </div>
                     <div className={`rounded-lg py-2 px-1 ${alertas > 0 ? "bg-amber-500/10" : "bg-muted/60"}`}>

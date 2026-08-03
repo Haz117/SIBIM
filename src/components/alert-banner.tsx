@@ -23,21 +23,21 @@ export function AlertBanner() {
 
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 text-xs animate-in slide-in-from-top-1 duration-300"
-      style={{ background: "rgba(239,68,68,0.12)", borderBottom: "1px solid rgba(239,68,68,0.25)" }}>
-      <Warning className="w-3.5 h-3.5 text-red-400 flex-shrink-0" weight="fill" />
-      <span className="flex-1 text-red-400">
+      style={{ background: "rgba(244,63,94,0.1)", borderBottom: "1px solid rgba(244,63,94,0.2)" }}>
+      <Warning className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" weight="fill" />
+      <span className="flex-1 text-rose-500">
         <span className="font-semibold">{agotados.length} {agotados.length === 1 ? "bien agotado" : "bienes agotados"}</span>
         {" — "}
         {agotados.map((p) => p.nombre).join(", ")}
       </span>
-      <Link href="/alertas" className="font-semibold text-red-400 hover:text-red-300 underline-offset-2 hover:underline flex-shrink-0 transition-colors">
+      <Link href="/alertas" className="font-semibold text-rose-500 hover:text-rose-400 underline-offset-2 hover:underline flex-shrink-0 transition-colors">
         Ver alertas
       </Link>
       <button
         type="button"
         onClick={() => setDismissed(true)}
         aria-label="Cerrar aviso"
-        className="text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0 ml-1"
+        className="text-rose-500/50 hover:text-rose-500 transition-colors flex-shrink-0 ml-1"
       >
         <X className="w-3.5 h-3.5" />
       </button>

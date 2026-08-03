@@ -186,13 +186,13 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                             style={{
                               background: isAgotado
-                                ? "rgba(239,68,68,0.15)"
+                                ? "rgba(244,63,94,0.15)"
                                 : isBajoStock
                                 ? "rgba(245,158,11,0.15)"
                                 : "rgba(167,139,250,0.15)",
                             }}
                           >
-                            {isAgotado && <XCircle className="w-4 h-4" style={{ color: "#EF4444" }} />}
+                            {isAgotado && <XCircle className="w-4 h-4" style={{ color: "#F43F5E" }} />}
                             {isBajoStock && <WarningOctagon className="w-4 h-4" style={{ color: "#F59E0B" }} />}
                             {isPorVencer && <Clock className="w-4 h-4" style={{ color: "#A78BFA" }} />}
                           </div>
@@ -202,9 +202,9 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                               <span
                                 className={cn(
                                   "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold",
-                                  isAgotado && "bg-red-500/15 text-red-400",
-                                  isBajoStock && "bg-amber-500/15 text-amber-400",
-                                  isPorVencer && "bg-purple-500/15 text-purple-400"
+                                  isAgotado && "bg-rose-500/15 text-rose-500",
+                                  isBajoStock && "bg-amber-500/15 text-amber-500",
+                                  isPorVencer && "bg-purple-500/15 text-purple-500"
                                 )}
                               >
                                 {isAgotado ? "Agotado" : isBajoStock ? "Bajo stock" : "Por vencer"}

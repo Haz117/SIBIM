@@ -17,7 +17,7 @@ Sistema de control patrimonial para el H. Ayuntamiento: inventario de bienes mun
 ## Características
 
 - **Dashboard** con 6 indicadores patrimoniales (total de bienes, valor, existencias bajas, agotados, movimientos del día, categorías) que se recalculan según el área del usuario. Los indicadores son clicables y llevan a la sección correspondiente.
-- **Organigrama** interactivo: Despacho de la Presidencia, Secretarías, Direcciones, Contraloría y otras áreas/organismos, cada una expandible para ver los bienes asignados, con enlace directo al listado filtrado en Productos. Los roles Secretario/a y Dirección ven una vista acotada a su propia secretaría/dirección (el árbol completo es exclusivo del superusuario). Búsqueda con botón de limpiar en el propio campo.
+- **Organigrama** interactivo: Despacho de la Presidencia, Secretarías, Direcciones, Contraloría y otras áreas/organismos, cada una expandible para ver los bienes asignados (máximo 5 en vista previa). Si el área tiene más, se muestra "Ver los N bienes →" con enlace directo al listado filtrado en Productos. Los roles Secretario/a y Dirección ven una vista acotada a su propia secretaría/dirección (el árbol completo es exclusivo del superusuario). Búsqueda con botón de limpiar en el propio campo.
 - **Productos** (bienes patrimoniales): alta, edición, eliminación con deshacer, búsqueda ampliada (nombre, código, proveedor, ubicación, descripción), filtros por categoría/estado/área, ordenamiento por columna, paginación (10/25/50/100 por página) con reset automático y scroll al inicio, exportación a CSV y Excel. Vista de detalle con ficha completa. Tabla responsiva con vista de tarjetas en móvil.
 - **Categorías**: CRUD completo con validación de nombre único, conteo de bienes por categoría, íconos, colores y estado de uso.
 - **Movimientos**: registro de entradas, salidas, ajustes (incluye fijar el stock exactamente en 0, ej. tras un conteo físico) y transferencias; filtros por tipo, producto y rango de fechas; ordenamiento por columna; anulación con restauración automática de stock; paginación; exportación a CSV y Excel (deshabilitada con filtro vacío); vista de tarjetas en móvil.
@@ -29,6 +29,8 @@ Sistema de control patrimonial para el H. Ayuntamiento: inventario de bienes mun
 - **Paleta de comandos** (`Ctrl+K`): búsqueda rápida de páginas y bienes desde cualquier parte de la app.
 - **Toasts** con variantes (éxito, error, info, advertencia) y botones de acción (ej. "Deshacer" al eliminar un bien).
 - **Campo de fecha con calendario propio**: el selector de "Vencimiento de garantía" y los filtros por rango de fecha usan un calendario construido a la medida (mes navegable, hoy resaltado, atajo "Hoy"/"Limpiar") en vez del selector nativo del navegador, y valida que la fecha exista de verdad (rechaza combinaciones imposibles como 31/02).
+- **Confirmación de cierre de sesión**: el botón de salir en el sidebar muestra un diálogo de confirmación antes de cerrar la sesión.
+- **Tooltips de ayuda** (`?`) en campos clave de los formularios: Stock Mínimo, Stock Máximo, Vencimiento de Garantía y Tipo de Movimiento. Al pasar el cursor se muestra una explicación contextual.
 - **Login** con panel institucional, animación de entrada y lista de usuarios de prueba para explorar los distintos roles.
 - **Animación de apertura** (splash con logo) al abrir o recargar, sin repetirse en la navegación interna.
 - Tema claro/oscuro persistente (`next-themes`), configurable desde la barra superior o desde Configuración.
@@ -121,6 +123,19 @@ El organigrama en `config/areas.js` es la fuente de verdad: cada bien tiene un c
 ## Temas y diseño
 
 El tema por defecto es claro; el oscuro queda disponible desde el botón de la barra superior o desde Configuración. Toda la paleta vive como variables CSS en `src/app/globals.css` (`:root` para claro, `.dark` para oscuro) para que un solo lugar controle ambos modos.
+
+### Paleta semántica del sistema
+
+El color de marca es morado (`#7C3AED`). El resto de la UI usa una paleta semántica coherente aplicada de forma consistente en todos los módulos (badges, toasts, iconos, gráficas y botones):
+
+| Concepto | Color | Hex |
+|---|---|---|
+| Activo / Entrada / Éxito | Teal | `#14B8A6` |
+| Bajo Stock / Ajuste / Advertencia | Amber | `#F59E0B` |
+| Agotado / Salida / Error | Rose | `#F43F5E` |
+| Vencido / Ajuste secundario | Purple | `#8B5CF6` |
+| Transferencia | Indigo | `#818CF8` |
+| Eliminar / Destructivo (hover) | Rose | `#F43F5E` |
 
 ## Problemas conocidos
 

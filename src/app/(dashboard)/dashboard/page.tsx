@@ -61,11 +61,11 @@ function buildStatCards(
 
     return [
       { label: "Total de Bienes", value: totalProductos, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: nuevosEsteMes > 0 ? `+${nuevosEsteMes} este mes` : "Sin altas este mes", up: nuevosEsteMes > 0, href: "/productos" },
-      { label: "Valor Patrimonial", value: `$${valorTotalInventario.toLocaleString()}`, icon: CurrencyDollar, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: `${unidadesTotales.toLocaleString()} unidades`, up: true, href: "/reportes" },
+      { label: "Valor Patrimonial", value: `$${valorTotalInventario.toLocaleString()}`, icon: CurrencyDollar, color: "#14B8A6", bg: "rgba(20,184,166,0.15)", change: `${unidadesTotales.toLocaleString()} unidades`, up: true, href: "/reportes" },
       { label: "Existencias Bajas", value: productosBajoStock, icon: WarningOctagon, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false, href: "/alertas" },
-      { label: "Agotados", value: productosAgotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
+      { label: "Agotados", value: productosAgotados, icon: XCircle, color: "#F43F5E", bg: "rgba(244,63,94,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
       { label: "Movimientos Hoy", value: movimientosHoy, icon: Pulse, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: `${allMovements.length} operaciones`, up: true, href: "/movimientos" },
-      { label: "Categorías", value: categoriasCount, icon: TrendUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "Todas activas", up: true, href: "/categorias" },
+      { label: "Categorías", value: categoriasCount, icon: TrendUp, color: "#8B5CF6", bg: "rgba(139,92,246,0.15)", change: "Todas activas", up: true, href: "/categorias" },
     ];
   }
 
@@ -76,9 +76,9 @@ function buildStatCards(
 
   return [
     { label: "Bienes de mi Área", value: scopedProducts.length, icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", change: user.area ?? "", up: true, href: "/productos" },
-    { label: "Valor de mi Área", value: `$${valor.toLocaleString()}`, icon: CurrencyDollar, color: "#10B981", bg: "rgba(16,185,129,0.15)", change: "Valor actual", up: true, href: "/reportes" },
+    { label: "Valor de mi Área", value: `$${valor.toLocaleString()}`, icon: CurrencyDollar, color: "#14B8A6", bg: "rgba(20,184,166,0.15)", change: "Valor actual", up: true, href: "/reportes" },
     { label: "Existencias Bajas", value: bajoStock, icon: WarningOctagon, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", change: "Requiere atención", up: false, href: "/alertas" },
-    { label: "Agotados", value: agotados, icon: XCircle, color: "#EF4444", bg: "rgba(239,68,68,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
+    { label: "Agotados", value: agotados, icon: XCircle, color: "#F43F5E", bg: "rgba(244,63,94,0.15)", change: "Reponer existencias", up: false, href: "/alertas" },
     { label: "Movimientos", value: scopedMovements.length, icon: Pulse, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", change: "Registrados", up: true, href: "/movimientos" },
     { label: "Categorías", value: categorias, icon: TrendUp, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", change: "En uso", up: true, href: "/categorias" },
   ];
@@ -160,12 +160,12 @@ export default function DashboardPage() {
                       <Icon className="w-3.5 h-3.5 transition-colors" style={{ color }} />
                     </div>
                     {up
-                      ? <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+                      ? <ArrowUpRight className="w-3.5 h-3.5 text-teal-500" />
                       : <ArrowDownRight className="w-3.5 h-3.5 text-amber-500" />}
                   </div>
                   <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
                   <p className="text-xs mt-1.5 text-muted-foreground">{label}</p>
-                  <p className="text-xs mt-1 font-medium" style={{ color: up ? "#10B981" : "#F59E0B" }}>{change}</p>
+                  <p className="text-xs mt-1 font-medium" style={{ color: up ? "#14B8A6" : "#F59E0B" }}>{change}</p>
                 </CardContent>
               </Card>
             </Link>
@@ -199,8 +199,8 @@ export default function DashboardPage() {
                           <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="colorSalidas" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#14B8A6" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#14B8A6" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -208,12 +208,12 @@ export default function DashboardPage() {
                       <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: "8px", color: "var(--popover-foreground)" }} />
                       <Area type="monotone" dataKey="entradas" stroke="#7C3AED" strokeWidth={2} fill="url(#colorEntradas)" name="Entradas" />
-                      <Area type="monotone" dataKey="salidas" stroke="#10B981" strokeWidth={2} fill="url(#colorSalidas)" name="Salidas" />
+                      <Area type="monotone" dataKey="salidas" stroke="#14B8A6" strokeWidth={2} fill="url(#colorSalidas)" name="Salidas" />
                     </AreaChart>
                   </ResponsiveContainer>
                   <div className="flex gap-4 mt-2">
                     <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-purple-600" /><span className="text-xs text-muted-foreground">Entradas</span></div>
-                    <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /><span className="text-xs text-muted-foreground">Salidas</span></div>
+                    <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-teal-500" /><span className="text-xs text-muted-foreground">Salidas</span></div>
                   </div>
                 </>
               )}
@@ -273,7 +273,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2">
                   {bajosStock.length > 0
                     ? <Badge variant="destructive" className="text-xs">{bajosStock.length} alertas</Badge>
-                    : <Badge className="text-xs border-0 bg-emerald-500/20 text-emerald-500">Sin alertas</Badge>
+                    : <Badge className="text-xs border-0 bg-teal-500/15 text-teal-500">Sin alertas</Badge>
                   }
                   <Link href="/alertas" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
                     Ver todas <ArrowRight className="w-3 h-3" />
@@ -284,8 +284,8 @@ export default function DashboardPage() {
             <CardContent className="space-y-3">
               {bajosStock.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <CheckCircle className="w-8 h-8 text-emerald-500" weight="duotone" />
-                  <p className="text-sm font-medium text-emerald-500">Sin alertas de stock</p>
+                  <CheckCircle className="w-8 h-8 text-teal-500" weight="duotone" />
+                  <p className="text-sm font-medium text-teal-500">Sin alertas de stock</p>
                   <p className="text-xs text-muted-foreground">Todas las existencias están en nivel adecuado</p>
                 </div>
               ) : bajosStock.slice(0, 5).map((p) => {
@@ -334,14 +334,14 @@ export default function DashboardPage() {
               {scopedMovements.slice(0, 5).map((mov) => (
                 <div key={mov.id} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    mov.tipo === "entrada" ? "bg-emerald-500/15" :
-                    mov.tipo === "salida" ? "bg-red-500/15" : "bg-purple-500/15"
+                    mov.tipo === "entrada" ? "bg-teal-500/15" :
+                    mov.tipo === "salida" ? "bg-rose-500/15" : "bg-purple-500/15"
                   }`}>
                     {mov.tipo === "entrada"
-                      ? <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                      ? <ArrowUpRight className="w-4 h-4 text-teal-500" />
                       : mov.tipo === "salida"
-                      ? <ArrowDownRight className="w-4 h-4 text-red-400" />
-                      : <Pulse className="w-4 h-4 text-purple-400" />}
+                      ? <ArrowDownRight className="w-4 h-4 text-rose-500" />
+                      : <Pulse className="w-4 h-4 text-purple-500" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{mov.producto?.nombre}</p>
@@ -349,7 +349,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className={`text-sm font-bold ${
-                      mov.tipo === "entrada" ? "text-emerald-400" : mov.tipo === "salida" ? "text-red-400" : "text-purple-400"
+                      mov.tipo === "entrada" ? "text-teal-500" : mov.tipo === "salida" ? "text-rose-500" : "text-purple-500"
                     }`}>
                       {mov.tipo === "entrada" ? "+" : mov.tipo === "salida" ? "-" : "~"}{mov.cantidad}
                     </p>

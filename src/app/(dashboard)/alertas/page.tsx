@@ -42,9 +42,9 @@ export default function AlertasPage() {
       title: "Bienes Agotados",
       items: agotados,
       icon: XCircle,
-      color: "#EF4444",
-      bg: "rgba(239,68,68,0.1)",
-      border: "rgba(239,68,68,0.2)",
+      color: "#F43F5E",
+      bg: "rgba(244,63,94,0.1)",
+      border: "rgba(244,63,94,0.2)",
       action: "Reponer",
       actionIcon: ArrowCounterClockwise,
       restock: true,
@@ -84,8 +84,8 @@ export default function AlertasPage() {
         {/* All-clear state */}
         {totalAlertas === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4 animate-in fade-in duration-300">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-emerald-500/15">
-              <CheckCircle className="w-8 h-8 text-emerald-500" weight="duotone" />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-teal-500/15">
+              <CheckCircle className="w-8 h-8 text-teal-500" weight="duotone" />
             </div>
             <div className="text-center">
               <p className="text-base font-semibold text-foreground">Todo en orden</p>
@@ -97,7 +97,7 @@ export default function AlertasPage() {
         {/* Summary + sections (hidden when all clear) */}
         {totalAlertas > 0 && <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "Agotados", count: agotados.length, color: "#EF4444", bg: "rgba(239,68,68,0.15)", icon: XCircle },
+            { label: "Agotados", count: agotados.length, color: "#F43F5E", bg: "rgba(244,63,94,0.15)", icon: XCircle },
             { label: "Existencias Bajas", count: bajoStock.length, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", icon: WarningOctagon },
             { label: "Garantías por Vencer", count: porVencer.length, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", icon: Clock },
           ].map(({ label, count, color, bg, icon: Icon }, i) => (
@@ -138,7 +138,7 @@ export default function AlertasPage() {
               <CardContent className="pt-0">
                 {items.length === 0 ? (
                   <div className="text-center py-8 flex flex-col items-center gap-2">
-                    <CheckCircle className="w-8 h-8 text-emerald-500/40" />
+                    <CheckCircle className="w-8 h-8 text-teal-500/40" />
                     <p className="text-sm text-muted-foreground">Sin alertas en esta categoría</p>
                   </div>
                 ) : (

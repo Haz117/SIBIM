@@ -173,9 +173,9 @@ export function CommandPalette() {
                     <Badge
                       className={cn(
                         "text-xs border-0 flex-shrink-0",
-                        p.estado === "agotado" ? "bg-red-500/20 text-red-400" :
-                        p.estado === "bajo_stock" ? "bg-amber-500/20 text-amber-400" :
-                        "bg-emerald-500/20 text-emerald-400"
+                        p.estado === "agotado" ? "bg-rose-500/15 text-rose-500" :
+                        p.estado === "bajo_stock" ? "bg-amber-500/15 text-amber-500" :
+                        "bg-teal-500/15 text-teal-500"
                       )}
                     >
                       {p.stock_actual}
