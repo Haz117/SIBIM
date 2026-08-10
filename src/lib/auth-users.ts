@@ -13,8 +13,8 @@ export interface AuthUser {
   /** También es el valor guardado en la cookie de sesión */
   id: string;
   username: string;
-  /** DEMO ONLY — texto plano. En Supabase: bcrypt hash. */
-  password: string;
+  /** Solo para la lógica de autenticación interna. Nunca exponer al cliente. */
+  password?: string;
   nombre: string;
   cargo: string;
   role: UserRole;

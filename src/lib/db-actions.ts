@@ -123,7 +123,11 @@ export async function dbDeleteMovement(
 // ── Usuarios ───────────────────────────────────────────────────────────────
 
 export async function dbGetUsersWithMeta(): Promise<{ users: AuthUser[]; canManage: boolean }> {
-  if (!isSupabaseConfigured()) return { users: AUTH_USERS, canManage: false };
+  if (!isSupabaseConfigured()) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const users = AUTH_USERS.map(({ password: _pw, ...u }) => u);
+    return { users, canManage: false };
+  }
   const { data } = await createSupabaseClient()
     .from("users")
     .select("id, username, nombre, cargo, role, area, foto_url")

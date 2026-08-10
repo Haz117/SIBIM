@@ -187,14 +187,14 @@ export function LoginForm() {
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Superusuario</p>
                   {admins.map((u) => (
-                    <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password} onPick={fillDemo} />
+                    <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password ?? ""} onPick={fillDemo} />
                   ))}
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Secretarios (secretaría completa)</p>
                   <div className="space-y-0.5">
                     {secretarios.map((u) => (
-                      <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password} onPick={fillDemo} />
+                      <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password ?? ""} onPick={fillDemo} />
                     ))}
                   </div>
                 </div>
@@ -202,7 +202,7 @@ export function LoginForm() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2.5 pb-1">Direcciones (solo la suya)</p>
                   <div className="space-y-0.5">
                     {direcciones.map((u) => (
-                      <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password} onPick={fillDemo} />
+                      <DemoUserRow key={u.id} nombre={u.nombre} area={u.area} username={u.username} password={u.password ?? ""} onPick={fillDemo} />
                     ))}
                   </div>
                 </div>

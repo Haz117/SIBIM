@@ -59,7 +59,11 @@ export async function dbFindUserByCredentials(
 
 export async function dbFindUserById(id: string): Promise<AuthUser | null> {
   if (!isSupabaseConfigured()) {
-    return AUTH_USERS.find((u) => u.id === id) ?? null;
+    const user = AUTH_USERS.find((u) => u.id === id) ?? null;
+    if (!user) return null;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _pw, ...safeUser } = user;
+    return safeUser;
   }
   const { data } = await createSupabaseClient()
     .from("users")

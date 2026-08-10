@@ -141,6 +141,10 @@ export function ConfiguracionClient({
           setFormError("Completa todos los campos obligatorios.")
           return
         }
+        if (formData.role !== "admin" && !formData.area.trim()) {
+          setFormError("Debes asignar un área para secretarios y direcciones.")
+          return
+        }
         const newUser = await dbAddUser({
           nombre: formData.nombre.trim(),
           username: formData.username.trim(),
@@ -155,6 +159,10 @@ export function ConfiguracionClient({
       } else if (mode === "edit") {
         if (!formData.nombre.trim() || !formData.cargo.trim()) {
           setFormError("Nombre y cargo son obligatorios.")
+          return
+        }
+        if (formData.role !== "admin" && !formData.area.trim()) {
+          setFormError("Debes asignar un área para secretarios y direcciones.")
           return
         }
         const id = userModal!.user!.id
