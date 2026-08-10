@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import {
   Plus, MagnifyingGlass, ClipboardText, ArrowUpRight, ArrowDownRight,
-  DownloadSimple, Prohibit,
+  DownloadSimple, Prohibit, X,
 } from "@phosphor-icons/react";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
@@ -267,14 +267,34 @@ export default function MovimientosPage() {
                 <DateInput className="w-44" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
               </div>
 
-              {hasFilters && (
-                <button type="button"
-                  onClick={() => { setSearch(""); setFilterTipo("todos"); setFechaDesde(""); setFechaHasta(""); }}
-                  className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors">
-                  × Limpiar
-                </button>
-              )}
-              <span className="ml-auto text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {filterTipo !== "todos" && (
+                  <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-medium border"
+                    style={{ background: `${TIPO_CONFIG[filterTipo as MovementType].hexBg}`, color: TIPO_CONFIG[filterTipo as MovementType].hex, borderColor: `${TIPO_CONFIG[filterTipo as MovementType].hex}40` }}>
+                    {TIPO_CONFIG[filterTipo as MovementType].label}
+                    <button type="button" onClick={() => setFilterTipo("todos")} aria-label="Quitar filtro de tipo">
+                      <X className="w-2.5 h-2.5 opacity-70 hover:opacity-100" />
+                    </button>
+                  </span>
+                )}
+                {(fechaDesde || fechaHasta) && (
+                  <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
+                    {fechaDesde || "inicio"} → {fechaHasta || "hoy"}
+                    <button type="button" onClick={() => { setFechaDesde(""); setFechaHasta(""); }} aria-label="Quitar filtro de fechas">
+                      <X className="w-2.5 h-2.5 opacity-70 hover:opacity-100" />
+                    </button>
+                  </span>
+                )}
+                {search && (
+                  <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full text-[11px] font-medium bg-muted text-muted-foreground border border-border">
+                    &quot;{search}&quot;
+                    <button type="button" onClick={() => setSearch("")} aria-label="Quitar búsqueda">
+                      <X className="w-2.5 h-2.5 opacity-70 hover:opacity-100" />
+                    </button>
+                  </span>
+                )}
+              </div>
+              <span className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
                 {filtered.length} de {scopedMovements.length} registros
               </span>
             </div>

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import {
   MagnifyingGlass, Plus, PencilSimple, Trash, Eye,
-  Package, Upload, WarningCircle, DownloadSimple, X,
+  Package, Upload, WarningCircle, DownloadSimple, X, SpinnerGap,
 } from "@phosphor-icons/react";
 import { CategoryIcon } from "@/lib/icon-map";
 import { ALL_AREA_NAMES } from "@/lib/areas-list";
@@ -719,6 +719,7 @@ function ProductForm({
   );
   const [submitted, setSubmitted] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(product?.foto_url ?? "");
+  const [imageLoading, setImageLoading] = useState(false);
 
   const [form, setForm] = useState<FormData>({
     nombre: product?.nombre ?? "",
@@ -765,6 +766,7 @@ function ProductForm({
       e.target.value = "";
       return;
     }
+    setImageLoading(true);
     try {
       const url = await compressImage(file, 800, 0.8);
       setPhotoPreview(url);
@@ -772,6 +774,7 @@ function ProductForm({
     } catch {
       toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error");
     } finally {
+      setImageLoading(false);
       e.target.value = "";
     }
   }
@@ -823,7 +826,12 @@ function ProductForm({
       onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
       {/* Foto */}
       <label className="border-2 border-dashed border-border rounded-xl p-5 text-center hover:border-primary/40 transition-colors cursor-pointer flex flex-col items-center gap-2 relative">
-        {photoPreview
+        {imageLoading
+          ? <>
+              <SpinnerGap className="w-7 h-7 text-primary animate-spin" />
+              <p className="text-sm text-muted-foreground">Procesando imagen...</p>
+            </>
+          : photoPreview
           ? <img src={photoPreview} alt="" className="h-20 object-contain rounded-lg" />
           : <>
               <Upload className="w-7 h-7 text-muted-foreground" weight="duotone" />
@@ -831,7 +839,7 @@ function ProductForm({
               <p className="text-xs text-muted-foreground">PNG, JPG hasta 8MB — se optimiza automáticamente</p>
             </>
         }
-        <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} />
+        <input type="file" accept="image/*" className="sr-only" onChange={handlePhoto} disabled={imageLoading} />
       </label>
 
       <div className="grid grid-cols-2 gap-4">

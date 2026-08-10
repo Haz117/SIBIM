@@ -326,9 +326,12 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {scopedMovements.length === 0 && (
-                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                <div className="flex flex-col items-center gap-3 py-6 text-center">
                   <p className="text-sm text-muted-foreground">Sin movimientos registrados</p>
-                  <p className="text-xs text-muted-foreground/60">Los movimientos aparecerán aquí en tiempo real</p>
+                  <p className="text-xs text-muted-foreground/60">Las entradas y salidas registradas aparecerán aquí</p>
+                  <Link href="/movimientos" className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                    <Plus className="w-3.5 h-3.5" weight="bold" /> Registrar movimiento
+                  </Link>
                 </div>
               )}
               {scopedMovements.slice(0, 5).map((mov) => (
