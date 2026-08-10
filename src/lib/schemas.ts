@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const UserWriteSchema = z.object({
+  nombre: z.string().min(1, "Nombre requerido").max(100),
+  username: z.string().min(2, "Usuario requerido").max(50).regex(/^[\w.@-]+$/, "Solo letras, números, punto, guión y @"),
+  cargo: z.string().min(1, "Cargo requerido").max(100),
+  role: z.enum(["admin", "secretario", "direccion"]),
+  area: z.string().max(200).nullable().optional(),
+  password: z.string().min(8, "Mínimo 8 caracteres").max(128).optional(),
+});
+
 export const LoginSchema = z.object({
   username: z.string().min(1).max(50),
   password: z.string().min(1).max(128),

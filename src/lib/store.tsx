@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useCallback, useRef, useEffect } f
 import type { Product, Category, Movement } from "@/lib/types"
 import { computeEstado } from "@/lib/product-utils"
 import { useToast } from "@/components/ui/toast"
+import { useAuth } from "@/components/auth-provider"
 import {
   dbAddProduct,
   dbUpdateProduct,
@@ -13,6 +14,7 @@ import {
   dbDeleteCategory,
   dbAddMovement,
   dbDeleteMovement,
+  dbUpdateUserProfile,
 } from "@/lib/db-actions"
 
 interface DataStore {
@@ -49,6 +51,7 @@ export function DataProvider({
   initialMovements?: Movement[]
 }) {
   const { toast } = useToast()
+  const { id: userId, foto_url: dbAvatarUrl } = useAuth()
   const [categories, setCategories] = useState<Category[]>(initialCategories)
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [movements, setMovements] = useState<Movement[]>(initialMovements)
@@ -61,27 +64,29 @@ export function DataProvider({
   useEffect(() => { categoriesRef.current = categories }, [categories])
   useEffect(() => { movementsRef.current = movements }, [movements])
 
-  // Preferencias de usuario — se mantienen en localStorage (no son datos de inventario)
+  // Preferencias de usuario — localStorage como caché inmediato, BD como fuente de verdad
   const [profileName, setProfileNameState] = useState<string | null>(() => {
     if (typeof window === "undefined") return null
     return localStorage.getItem("sibim_profileName")
   })
 
   const [avatarUrl, setAvatarUrlState] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null
-    return localStorage.getItem("sibim_avatarUrl")
+    if (typeof window === "undefined") return dbAvatarUrl ?? null
+    return localStorage.getItem("sibim_avatarUrl") ?? dbAvatarUrl ?? null
   })
 
-  const setProfileName = useCallback((name: string) => {
+  const setProfileName = useCallback(async (name: string) => {
     setProfileNameState(name)
     localStorage.setItem("sibim_profileName", name)
-  }, [])
+    try { await dbUpdateUserProfile(userId, { nombre: name }) } catch { /* silent */ }
+  }, [userId])
 
-  const setAvatarUrl = useCallback((url: string | null) => {
+  const setAvatarUrl = useCallback(async (url: string | null) => {
     setAvatarUrlState(url)
     if (url) localStorage.setItem("sibim_avatarUrl", url)
     else localStorage.removeItem("sibim_avatarUrl")
-  }, [])
+    try { await dbUpdateUserProfile(userId, { foto_url: url }) } catch { /* silent */ }
+  }, [userId])
 
   // Recarga la página para obtener datos frescos del servidor
   const resetData = useCallback(() => {

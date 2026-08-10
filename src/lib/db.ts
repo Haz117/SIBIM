@@ -3,6 +3,7 @@ import { createSupabaseClient, isSupabaseConfigured } from "./supabase";
 import { mockCategories, mockProducts, mockMovements } from "./mock-data";
 import { AUTH_USERS } from "./auth-users";
 import { computeEstado } from "./product-utils";
+import { verifyPassword } from "./hash";
 import type { Product, Category, Movement } from "./types";
 import type { AuthUser } from "./auth-users";
 
@@ -47,9 +48,13 @@ export async function dbFindUserByCredentials(
     .from("users")
     .select("*")
     .eq("username", username)
-    .eq("password", password)
     .single();
-  return (data as AuthUser) ?? null;
+  if (!data) return null;
+  const valid = await verifyPassword(password, (data as any).password);
+  if (!valid) return null;
+  // No devolver el hash al cliente
+  const { password: _pw, ...user } = data as any;
+  return user as AuthUser;
 }
 
 export async function dbFindUserById(id: string): Promise<AuthUser | null> {
@@ -58,7 +63,7 @@ export async function dbFindUserById(id: string): Promise<AuthUser | null> {
   }
   const { data } = await createSupabaseClient()
     .from("users")
-    .select("*")
+    .select("id, username, nombre, cargo, role, area, foto_url")
     .eq("id", id)
     .single();
   return (data as AuthUser) ?? null;

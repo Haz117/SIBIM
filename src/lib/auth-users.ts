@@ -13,13 +13,15 @@ export interface AuthUser {
   /** También es el valor guardado en la cookie de sesión */
   id: string;
   username: string;
-  /** DEMO ONLY — texto plano. En producción: hash + proveedor de auth real. */
+  /** DEMO ONLY — texto plano. En Supabase: bcrypt hash. */
   password: string;
   nombre: string;
   cargo: string;
   role: UserRole;
   /** Nombre exacto del área (config/areas.js) que administra. null = superusuario, ve todo. */
   area: string | null;
+  /** Foto de perfil (data URL). Se guarda en localStorage en demo y en la BD con Supabase. */
+  foto_url?: string | null;
 }
 
 export const AUTH_USERS: AuthUser[] = [

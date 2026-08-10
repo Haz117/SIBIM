@@ -2,8 +2,11 @@
 
 import { createSupabaseClient, isSupabaseConfigured } from "./supabase";
 import { ALL_AREA_NAMES } from "./areas-list";
-import { ProductWriteSchema, CategoryWriteSchema, MovementWriteSchema } from "./schemas";
+import { hashPassword } from "./hash";
+import { AUTH_USERS } from "./auth-users";
+import { ProductWriteSchema, CategoryWriteSchema, MovementWriteSchema, UserWriteSchema } from "./schemas";
 import type { Product, Category, Movement } from "./types";
+import type { AuthUser } from "./auth-users";
 
 function validateArea(area?: string) {
   if (area && !ALL_AREA_NAMES.includes(area)) {
@@ -78,8 +81,6 @@ export async function dbDeleteCategory(id: string) {
 }
 
 // ── Movimientos ────────────────────────────────────────────────────────────
-// Ambas operaciones usan funciones Postgres (RPC) para ejecutar el INSERT/UPDATE
-// en una sola transacción, evitando inconsistencias si la segunda query falla.
 
 export async function dbAddMovement(movement: Movement) {
   if (!isSupabaseConfigured()) return;
@@ -116,5 +117,62 @@ export async function dbDeleteMovement(
     p_producto_id: productoId,
     p_stock_anterior: stockAnterior,
   });
+  if (error) throw error;
+}
+
+// ── Usuarios ───────────────────────────────────────────────────────────────
+
+export async function dbGetUsersWithMeta(): Promise<{ users: AuthUser[]; canManage: boolean }> {
+  if (!isSupabaseConfigured()) return { users: AUTH_USERS, canManage: false };
+  const { data } = await createSupabaseClient()
+    .from("users")
+    .select("id, username, nombre, cargo, role, area, foto_url")
+    .order("nombre");
+  return { users: (data as AuthUser[]) ?? AUTH_USERS, canManage: true };
+}
+
+export async function dbAddUser(
+  input: { nombre: string; username: string; password: string; cargo: string; role: AuthUser["role"]; area: string | null }
+): Promise<AuthUser> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase no está configurado");
+  assertValid(UserWriteSchema.safeParse(input), "Usuario");
+  const id = crypto.randomUUID();
+  const hashedPw = await hashPassword(input.password!);
+  const row = { id, nombre: input.nombre, username: input.username, password: hashedPw, cargo: input.cargo, role: input.role, area: input.area };
+  const { data, error } = await createSupabaseClient().from("users").insert(row).select("id, username, nombre, cargo, role, area, foto_url").single();
+  if (error) throw error;
+  return data as AuthUser;
+}
+
+export async function dbUpdateUser(
+  id: string,
+  updates: { nombre?: string; cargo?: string; role?: AuthUser["role"]; area?: string | null }
+): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase no está configurado");
+  assertValid(UserWriteSchema.partial().safeParse(updates), "Usuario");
+  const { error } = await createSupabaseClient().from("users").update(updates).eq("id", id);
+  if (error) throw error;
+}
+
+export async function dbChangeUserPassword(id: string, newPassword: string): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase no está configurado");
+  if (!newPassword || newPassword.length < 8) throw new Error("La contraseña debe tener al menos 8 caracteres");
+  const hashed = await hashPassword(newPassword);
+  const { error } = await createSupabaseClient().from("users").update({ password: hashed }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function dbDeleteUser(id: string): Promise<void> {
+  if (!isSupabaseConfigured()) throw new Error("Supabase no está configurado");
+  const { error } = await createSupabaseClient().from("users").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function dbUpdateUserProfile(
+  userId: string,
+  updates: { nombre?: string; foto_url?: string | null }
+): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+  const { error } = await createSupabaseClient().from("users").update(updates).eq("id", userId);
   if (error) throw error;
 }

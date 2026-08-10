@@ -3,18 +3,20 @@
 -- Ejecutar en el SQL Editor de tu proyecto Supabase.
 -- ============================================================
 
+-- Necesario para bcrypt en el seed (compatible con bcryptjs del servidor).
+create extension if not exists pgcrypto;
+
 -- ── Usuarios ────────────────────────────────────────────────
--- NOTA: las contraseñas están en texto plano solo para demo.
--- En producción migrar a Supabase Auth o usar bcrypt.
 
 create table if not exists users (
-  id        text primary key,
-  username  text unique not null,
-  password  text not null,
-  nombre    text not null,
-  cargo     text not null,
-  role      text not null check (role in ('admin', 'secretario', 'direccion')),
-  area      text,
+  id         text primary key,
+  username   text unique not null,
+  password   text not null,            -- bcrypt hash ($2a$/2b$)
+  nombre     text not null,
+  cargo      text not null,
+  role       text not null check (role in ('admin', 'secretario', 'direccion')),
+  area       text,
+  foto_url   text,
   created_at timestamptz default now()
 );
 
@@ -119,31 +121,33 @@ $$;
 
 -- ============================================================
 -- SEED — Usuarios
+-- Las contraseñas se hashean con bcrypt (pgcrypto). El servidor
+-- las verifica con bcryptjs, que es compatible con el prefijo $2a$.
 -- ============================================================
 
-insert into users (id, username, password, nombre, cargo, role, area) values
-  ('admin',                    'admin',      'Admin#2026',      'Superusuario',                        'Administrador del sistema',                                                             'admin',      null),
-  ('sec-general',              'jm.zuniga',  'Secretario#2026', 'José Manuel Zúñiga Guerrero',         'Secretario General Municipal',                                                          'secretario', 'Secretaría General Municipal'),
-  ('sec-tesoreria',            'r.martinez', 'Secretario#2026', 'Rubén Martínez Sánchez',              'Secretario de Tesorería Municipal',                                                     'secretario', 'Secretaría de Tesorería Municipal'),
-  ('sec-obras',                'ia.lugo',    'Secretario#2026', 'Iván Arturo Lugo Martín',             'Secretario de Obras Públicas y Desarrollo Urbano',                                      'secretario', 'Secretaría de Obras Públicas y Desarrollo Urbano'),
-  ('sec-planeacion',           'r.barrera',  'Secretario#2026', 'Rigoberto Barrera Roldán',            'Secretario de Planeación y Evaluación',                                                 'secretario', 'Secretaría de Planeación y Evaluación'),
-  ('sec-desarrollo-economico', 'l.ocampo',   'Secretario#2026', 'Lucila Ocampo Valle',                 'Secretaria de Desarrollo Económico y Turismo',                                          'secretario', 'Secretaría de Desarrollo Económico y Turismo'),
-  ('sec-bienestar',            's.vargas',   'Secretario#2026', 'Socorro Vargas Chávez',               'Secretaria de Bienestar Social',                                                        'secretario', 'Secretaría de Bienestar Social'),
-  ('sec-seguridad',            'd.morelos',  'Secretario#2026', 'Diadymir Morelos Esquivel',           'Secretaria de Seguridad Pública, Tránsito Municipal, Auxilio Vial y Protección Civil',  'secretario', 'Secretaría de Seguridad Pública, Tránsito Municipal, Auxilio Vial y Protección Civil'),
-  ('sec-pueblos-indigenas',    'la.patricio','Secretario#2026', 'Lupita Anneth Patricio Reyes',        'Secretaria de Desarrollo para Pueblos y Comunidades Indígenas',                         'secretario', 'Secretaría de Desarrollo para Pueblos y Comunidades Indígenas'),
-  ('administracion',           'l.jimenez',  'Direccion#2026',  'Laura Jiménez Ortiz',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Administración'),
-  ('rh-nomina',                'm.torres',   'Direccion#2026',  'Miguel Ángel Torres',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Recursos Humanos y Nómina'),
-  ('archivo',                  'p.solis',    'Direccion#2026',  'Patricia Solís Ramos',                'Responsable de bienes',                                                                 'direccion',  'Dirección del Área Coordinadora de Archivo'),
-  ('proteccion-civil',         'h.ramirez',  'Direccion#2026',  'Héctor Ramírez Cano',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Protección Civil y Bomberos'),
-  ('servicios-publicos',       'j.bautista', 'Direccion#2026',  'Jorge Luis Bautista',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Servicios Públicos y Limpias'),
-  ('tecnologias-info',         'a.castillo', 'Direccion#2026',  'Andrea Castillo Vega',                'Responsable de bienes',                                                                 'direccion',  'Dirección de Tecnologías de la Información'),
-  ('catastro',                 'r.nava',     'Direccion#2026',  'Roberto Nava Cruz',                   'Responsable de bienes',                                                                 'direccion',  'Dirección de Catastro'),
-  ('correspondencia',          'g.reyes',    'Direccion#2026',  'Gabriela Reyes Molina',               'Responsable de bienes',                                                                 'direccion',  'Unidad Central de Correspondencia'),
-  ('gobierno',                 'f.aguilar',  'Direccion#2026',  'Fernando Aguilar Ponce',              'Responsable de bienes',                                                                 'direccion',  'Dirección de Gobierno'),
-  ('obras-publicas',           'r.dominguez','Direccion#2026',  'Ricardo Domínguez Silva',             'Responsable de bienes',                                                                 'direccion',  'Dirección de Obras Públicas'),
-  ('servicios-municipales',    'c.herrera',  'Direccion#2026',  'Claudia Herrera Luna',                'Responsable de bienes',                                                                 'direccion',  'Dirección de Servicios Municipales'),
-  ('logistica-eventos',        's.mendoza',  'Direccion#2026',  'Sofía Mendoza Ríos',                  'Responsable de bienes',                                                                 'direccion',  'Dirección de Logística y Eventos'),
-  ('comunicacion-social',      'd.cortes',   'Direccion#2026',  'Daniel Cortés Salinas',               'Responsable de bienes',                                                                 'direccion',  'Dirección de Comunicación Social y Marketing Digital')
+insert into users (id, username, password, nombre, cargo, role, area, foto_url) values
+  ('admin',                    'admin',       crypt('Admin#2026',      gen_salt('bf', 10)), 'Superusuario',                        'Administrador del sistema',                                                             'admin',      null,                                                                                                            null),
+  ('sec-general',              'jm.zuniga',   crypt('Secretario#2026', gen_salt('bf', 10)), 'José Manuel Zúñiga Guerrero',         'Secretario General Municipal',                                                          'secretario', 'Secretaría General Municipal',                                                                                  null),
+  ('sec-tesoreria',            'r.martinez',  crypt('Secretario#2026', gen_salt('bf', 10)), 'Rubén Martínez Sánchez',              'Secretario de Tesorería Municipal',                                                     'secretario', 'Secretaría de Tesorería Municipal',                                                                             null),
+  ('sec-obras',                'ia.lugo',     crypt('Secretario#2026', gen_salt('bf', 10)), 'Iván Arturo Lugo Martín',             'Secretario de Obras Públicas y Desarrollo Urbano',                                      'secretario', 'Secretaría de Obras Públicas y Desarrollo Urbano',                                                              null),
+  ('sec-planeacion',           'r.barrera',   crypt('Secretario#2026', gen_salt('bf', 10)), 'Rigoberto Barrera Roldán',            'Secretario de Planeación y Evaluación',                                                 'secretario', 'Secretaría de Planeación y Evaluación',                                                                         null),
+  ('sec-desarrollo-economico', 'l.ocampo',    crypt('Secretario#2026', gen_salt('bf', 10)), 'Lucila Ocampo Valle',                 'Secretaria de Desarrollo Económico y Turismo',                                          'secretario', 'Secretaría de Desarrollo Económico y Turismo',                                                                  null),
+  ('sec-bienestar',            's.vargas',    crypt('Secretario#2026', gen_salt('bf', 10)), 'Socorro Vargas Chávez',               'Secretaria de Bienestar Social',                                                        'secretario', 'Secretaría de Bienestar Social',                                                                                null),
+  ('sec-seguridad',            'd.morelos',   crypt('Secretario#2026', gen_salt('bf', 10)), 'Diadymir Morelos Esquivel',           'Secretaria de Seguridad Pública, Tránsito Municipal, Auxilio Vial y Protección Civil',  'secretario', 'Secretaría de Seguridad Pública, Tránsito Municipal, Auxilio Vial y Protección Civil',                           null),
+  ('sec-pueblos-indigenas',    'la.patricio', crypt('Secretario#2026', gen_salt('bf', 10)), 'Lupita Anneth Patricio Reyes',        'Secretaria de Desarrollo para Pueblos y Comunidades Indígenas',                         'secretario', 'Secretaría de Desarrollo para Pueblos y Comunidades Indígenas',                                                 null),
+  ('administracion',           'l.jimenez',   crypt('Direccion#2026',  gen_salt('bf', 10)), 'Laura Jiménez Ortiz',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Administración',                                                                                   null),
+  ('rh-nomina',                'm.torres',    crypt('Direccion#2026',  gen_salt('bf', 10)), 'Miguel Ángel Torres',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Recursos Humanos y Nómina',                                                                        null),
+  ('archivo',                  'p.solis',     crypt('Direccion#2026',  gen_salt('bf', 10)), 'Patricia Solís Ramos',                'Responsable de bienes',                                                                 'direccion',  'Dirección del Área Coordinadora de Archivo',                                                                    null),
+  ('proteccion-civil',         'h.ramirez',   crypt('Direccion#2026',  gen_salt('bf', 10)), 'Héctor Ramírez Cano',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Protección Civil y Bomberos',                                                                      null),
+  ('servicios-publicos',       'j.bautista',  crypt('Direccion#2026',  gen_salt('bf', 10)), 'Jorge Luis Bautista',                 'Responsable de bienes',                                                                 'direccion',  'Dirección de Servicios Públicos y Limpias',                                                                     null),
+  ('tecnologias-info',         'a.castillo',  crypt('Direccion#2026',  gen_salt('bf', 10)), 'Andrea Castillo Vega',                'Responsable de bienes',                                                                 'direccion',  'Dirección de Tecnologías de la Información',                                                                    null),
+  ('catastro',                 'r.nava',      crypt('Direccion#2026',  gen_salt('bf', 10)), 'Roberto Nava Cruz',                   'Responsable de bienes',                                                                 'direccion',  'Dirección de Catastro',                                                                                         null),
+  ('correspondencia',          'g.reyes',     crypt('Direccion#2026',  gen_salt('bf', 10)), 'Gabriela Reyes Molina',               'Responsable de bienes',                                                                 'direccion',  'Unidad Central de Correspondencia',                                                                             null),
+  ('gobierno',                 'f.aguilar',   crypt('Direccion#2026',  gen_salt('bf', 10)), 'Fernando Aguilar Ponce',              'Responsable de bienes',                                                                 'direccion',  'Dirección de Gobierno',                                                                                         null),
+  ('obras-publicas',           'r.dominguez', crypt('Direccion#2026',  gen_salt('bf', 10)), 'Ricardo Domínguez Silva',             'Responsable de bienes',                                                                 'direccion',  'Dirección de Obras Públicas',                                                                                   null),
+  ('servicios-municipales',    'c.herrera',   crypt('Direccion#2026',  gen_salt('bf', 10)), 'Claudia Herrera Luna',                'Responsable de bienes',                                                                 'direccion',  'Dirección de Servicios Municipales',                                                                            null),
+  ('logistica-eventos',        's.mendoza',   crypt('Direccion#2026',  gen_salt('bf', 10)), 'Sofía Mendoza Ríos',                  'Responsable de bienes',                                                                 'direccion',  'Dirección de Logística y Eventos',                                                                              null),
+  ('comunicacion-social',      'd.cortes',    crypt('Direccion#2026',  gen_salt('bf', 10)), 'Daniel Cortés Salinas',               'Responsable de bienes',                                                                 'direccion',  'Dirección de Comunicación Social y Marketing Digital',                                                          null)
 on conflict (id) do nothing;
 
 -- ============================================================
@@ -190,3 +194,15 @@ insert into movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nu
   ('3', '10', 'salida',       2,  2,  0, 'Baja por obsolescencia',          'BAJ-2026-006', 'admin', 'Empleado 1', '2026-07-29T11:15:00'),
   ('4', '13', 'ajuste',       4, 18, 22, 'Corrección de inventario físico', 'AJU-2026-011', 'admin', 'Admin',      '2026-07-28T16:00:00')
 on conflict (id) do nothing;
+
+-- ============================================================
+-- Row Level Security
+-- El service-role key omite RLS por completo (acceso de servidor).
+-- Habilitar RLS sin políticas bloquea el acceso directo con la
+-- anon key, eliminando ese vector de ataque.
+-- ============================================================
+
+alter table users      enable row level security;
+alter table categories enable row level security;
+alter table products   enable row level security;
+alter table movements  enable row level security;
