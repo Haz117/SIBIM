@@ -15,6 +15,13 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useDismissableMenu } from "@/lib/use-dismissable-menu";
 
+function vencimientoColor(dias: number) {
+  if (dias < 0)  return { color: "#F43F5E", bg: "rgba(244,63,94,0.15)", label: "Vencido" };
+  if (dias === 0) return { color: "#F97316", bg: "rgba(249,115,22,0.15)", label: "Vence hoy" };
+  if (dias <= 2)  return { color: "#F59E0B", bg: "rgba(245,158,11,0.15)", label: "Por vencer" };
+  return          { color: "#A78BFA", bg: "rgba(167,139,250,0.15)", label: "Por vencer" };
+}
+
 interface TopbarProps {
   title: string;
   subtitle?: string;
@@ -53,7 +60,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
       .filter((p) => {
         if (!p.fecha_vencimiento) return false;
         const dias = Math.ceil((new Date(p.fecha_vencimiento).getTime() - now) / 86400000);
-        return dias <= 7 && dias >= 0;
+        return dias <= 7;
       })
       .map((p) => ({ product: p, tipo: "por_vencer" as const })),
   ].slice(0, 5);
@@ -180,6 +187,8 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                         ? Math.ceil((new Date(product.fecha_vencimiento).getTime() - now) / 86400000)
                         : null;
 
+                      const urgency = isPorVencer ? vencimientoColor(dias ?? 0) : null;
+
                       return (
                         <div key={`${product.id}-${tipo}`} className="flex items-start gap-3 px-4 py-3 hover:bg-accent/50 transition-colors">
                           <div
@@ -189,12 +198,12 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                                 ? "rgba(244,63,94,0.15)"
                                 : isBajoStock
                                 ? "rgba(245,158,11,0.15)"
-                                : "rgba(167,139,250,0.15)",
+                                : urgency!.bg,
                             }}
                           >
                             {isAgotado && <XCircle className="w-4 h-4" style={{ color: "#F43F5E" }} />}
                             {isBajoStock && <WarningOctagon className="w-4 h-4" style={{ color: "#F59E0B" }} />}
-                            {isPorVencer && <Clock className="w-4 h-4" style={{ color: "#A78BFA" }} />}
+                            {isPorVencer && <Clock className="w-4 h-4" style={{ color: urgency!.color }} />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{product.nombre}</p>
@@ -204,14 +213,16 @@ export function Topbar({ title, subtitle }: TopbarProps) {
                                   "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold",
                                   isAgotado && "bg-rose-500/15 text-rose-500",
                                   isBajoStock && "bg-amber-500/15 text-amber-500",
-                                  isPorVencer && "bg-purple-500/15 text-purple-500"
                                 )}
+                                style={isPorVencer ? { background: urgency!.bg, color: urgency!.color } : undefined}
                               >
-                                {isAgotado ? "Agotado" : isBajoStock ? "Bajo stock" : "Por vencer"}
+                                {isAgotado ? "Agotado" : isBajoStock ? "Bajo stock" : urgency!.label}
                               </span>
                               <span className="text-xs text-muted-foreground">
                                 {isPorVencer
-                                  ? dias === 0
+                                  ? dias !== null && dias < 0
+                                    ? "Vencido"
+                                    : dias === 0
                                     ? "Vence hoy"
                                     : `${dias}d restantes`
                                   : `${product.stock_actual}/${product.stock_minimo} mín.`}

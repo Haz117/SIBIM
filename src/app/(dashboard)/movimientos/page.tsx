@@ -169,6 +169,9 @@ export default function MovimientosPage() {
                   <p className="text-2xl font-bold text-foreground leading-none">{qty}</p>
                   <p className="text-xs mt-1 text-muted-foreground">{cfg.label}s</p>
                   <p className="text-xs mt-0.5 font-medium" style={{ color: cfg.hex }}>{total} operación{total !== 1 ? "es" : ""}</p>
+                  {(fechaDesde || fechaHasta) && (
+                    <p className="text-[10px] mt-1 text-muted-foreground/50">Total histórico</p>
+                  )}
                 </CardContent>
               </Card>
             );

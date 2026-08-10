@@ -518,16 +518,35 @@ function ProductosContent() {
             {filtered.length === 0 && (
               <div className="text-center py-16 flex flex-col items-center gap-3">
                 <Package className="w-12 h-12 text-muted-foreground/40" weight="duotone" />
-                <p className="text-sm font-medium text-foreground">No se encontraron bienes</p>
-                <p className="text-xs text-muted-foreground">Ajusta los filtros o agrega un nuevo bien</p>
-                {hasFilters && (
-                  <button
-                    type="button"
-                    onClick={() => { setSearch(""); setFilterCat("todas"); setFilterStatus("todos"); setFilterArea("todas"); }}
-                    className="text-xs text-primary hover:underline font-medium"
-                  >
-                    Limpiar filtros
-                  </button>
+                {scopedProducts.length === 0 ? (
+                  <>
+                    <p className="text-sm font-medium text-foreground">Aún no hay bienes registrados</p>
+                    <p className="text-xs text-muted-foreground">Agrega el primer bien patrimonial para comenzar el inventario</p>
+                    {user.role === "admin" && (
+                      <button
+                        type="button"
+                        onClick={() => setOpenAdd(true)}
+                        className="inline-flex items-center gap-1.5 mt-1 h-8 px-4 rounded-lg text-xs font-semibold text-primary-foreground transition-all active:scale-95"
+                        style={{ background: "var(--primary)" }}
+                      >
+                        <Plus className="w-3.5 h-3.5" weight="bold" /> Agregar primer bien
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-foreground">No se encontraron bienes</p>
+                    <p className="text-xs text-muted-foreground">Ajusta los filtros o agrega un nuevo bien</p>
+                    {hasFilters && (
+                      <button
+                        type="button"
+                        onClick={() => { setSearch(""); setFilterCat("todas"); setFilterStatus("todos"); setFilterArea("todas"); }}
+                        className="text-xs text-primary hover:underline font-medium"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             )}

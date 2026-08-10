@@ -22,6 +22,13 @@ import { isAreaAccessible } from "@/lib/access";
 import type { AuthUser } from "@/lib/auth-users";
 import type { Product, Category, Movement } from "@/lib/types";
 
+function getGreeting(name: string): string {
+  const hour = new Date().getHours();
+  if (hour >= 6 && hour <= 11) return `Buenos días, ${name}`;
+  if (hour >= 12 && hour <= 18) return `Buenas tardes, ${name}`;
+  return `Buenas noches, ${name}`;
+}
+
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function buildValorPorCategoria(scopedProducts: Product[], categories: Category[]) {
@@ -88,6 +95,8 @@ export default function DashboardPage() {
   const user = useAuth();
   const { products, movements, categories } = useData();
 
+  const greeting = getGreeting(user.nombre);
+
   const scopedProducts = user.role === "admin" ? products : products.filter((p) => isAreaAccessible(user, p.area));
   const scopedMovements = user.role === "admin" ? movements : movements.filter((m) => isAreaAccessible(user, m.producto?.area));
   const STAT_CARDS = buildStatCards(user, scopedProducts, scopedMovements, products, movements, categories);
@@ -114,7 +123,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
-      <Topbar title="Dashboard" subtitle="Resumen general del inventario" />
+      <Topbar title="Dashboard" subtitle={greeting} />
 
       <div className="p-6 space-y-6">
 
