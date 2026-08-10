@@ -45,3 +45,7 @@ next-env.d.ts
 .claude/
 .cursor/
 .copilot/
+
+# PWA — workbox auto-generado (si se usa), sw.js es estático y sí se versiona
+public/workbox-*.js
+public/workbox-*.js.map
