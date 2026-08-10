@@ -74,6 +74,48 @@ create table if not exists movements (
 
 create index if not exists idx_movements_producto_id on movements(producto_id);
 create index if not exists idx_movements_created_at  on movements(created_at desc);
+create index if not exists idx_movements_usuario_id  on movements(usuario_id);
+
+-- ── Funciones atómicas para movimientos ─────────────────────────────────────
+-- Ejecutan INSERT + UPDATE en una sola transacción para evitar que el stock
+-- quede inconsistente si la segunda operación falla.
+
+create or replace function add_movement_atomic(
+  p_id             text,
+  p_producto_id    text,
+  p_tipo           text,
+  p_cantidad       integer,
+  p_stock_anterior integer,
+  p_stock_nuevo    integer,
+  p_motivo         text,
+  p_referencia     text,
+  p_usuario_id     text,
+  p_usuario_nombre text,
+  p_created_at     timestamptz
+) returns void language plpgsql as $$
+begin
+  insert into movements (id, producto_id, tipo, cantidad, stock_anterior, stock_nuevo, motivo, referencia, usuario_id, usuario_nombre, created_at)
+  values (p_id, p_producto_id, p_tipo, p_cantidad, p_stock_anterior, p_stock_nuevo, p_motivo, p_referencia, p_usuario_id, p_usuario_nombre, p_created_at);
+
+  update products
+  set stock_actual = p_stock_nuevo, updated_at = now()
+  where id = p_producto_id;
+end;
+$$;
+
+create or replace function delete_movement_atomic(
+  p_id             text,
+  p_producto_id    text,
+  p_stock_anterior integer
+) returns void language plpgsql as $$
+begin
+  delete from movements where id = p_id;
+
+  update products
+  set stock_actual = p_stock_anterior, updated_at = now()
+  where id = p_producto_id;
+end;
+$$;
 
 -- ============================================================
 -- SEED — Usuarios

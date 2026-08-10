@@ -1,6 +1,6 @@
 export type ProductStatus = "activo" | "bajo_stock" | "agotado" | "vencido";
 export type MovementType = "entrada" | "salida" | "ajuste" | "transferencia";
-export type UserRole = "admin" | "auditor" | "empleado";
+export type UserRole = "admin" | "secretario" | "direccion";
 
 export interface Category {
   id: string;

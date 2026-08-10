@@ -1,31 +1,52 @@
 import "server-only";
+import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
-import { AuthUser } from "./auth-users";
 import { dbFindUserById } from "./db";
+import type { AuthUser } from "./auth-users";
 
 const COOKIE_NAME = "session";
+const ALG = "HS256";
+const MAX_AGE = 60 * 60 * 24 * 7; // 7 días
 
-// DEMO ONLY: the cookie stores the plain user id. There's no real secret to
-// protect since AUTH_USERS is mock data — in production, replace this with a
-// signed/encrypted session (e.g. `jose` + SESSION_SECRET) or delegate entirely
-// to a real auth provider (Supabase Auth).
+function getSecret(): Uint8Array {
+  const raw = process.env.SESSION_SECRET;
+  if (!raw && process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET no está configurado. Genera uno con: openssl rand -base64 32");
+  }
+  // En desarrollo/demo se usa un fallback — no es seguro para producción
+  return new TextEncoder().encode(raw ?? "sibim-dev-secret-change-in-production");
+}
 
 export async function createSession(userId: string) {
+  const token = await new SignJWT({ sub: userId })
+    .setProtectedHeader({ alg: ALG })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(getSecret());
+
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, userId, {
+  cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: MAX_AGE,
   });
 }
 
 export async function getSession(): Promise<AuthUser | null> {
   const cookieStore = await cookies();
-  const userId = cookieStore.get(COOKIE_NAME)?.value;
-  if (!userId) return null;
-  return dbFindUserById(userId);
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getSecret(), { algorithms: [ALG] });
+    const userId = payload.sub;
+    if (!userId) return null;
+    return dbFindUserById(userId);
+  } catch {
+    // Token inválido, expirado o manipulado — tratar como sesión inexistente
+    return null;
+  }
 }
 
 export async function deleteSession() {

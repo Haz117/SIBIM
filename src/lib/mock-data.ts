@@ -1,4 +1,4 @@
-import { Category, Product, Movement, DashboardStats } from "./types";
+import { Category, Product, Movement } from "./types";
 
 export const mockCategories: Category[] = [
   { id: "1", nombre: "Mobiliario", descripcion: "Escritorios, sillas y archiveros", color: "#8B5CF6", icono: "Armchair", created_at: "2024-01-01" },
@@ -204,17 +204,3 @@ export const mockMovements: Movement[] = [
   },
 ];
 
-export function productsByArea(areaName: string): Product[] {
-  return mockProducts.filter((p) => p.area === areaName);
-}
-
-export const mockStats: DashboardStats = {
-  total_productos: 14,
-  productos_activos: 7,
-  productos_bajo_stock: 5,
-  productos_agotados: 2,
-  productos_vencidos: 0,
-  valor_total_inventario: 5662700,
-  movimientos_hoy: 3,
-  categorias: 6,
-};

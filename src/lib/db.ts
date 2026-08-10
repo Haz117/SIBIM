@@ -2,19 +2,9 @@ import "server-only";
 import { createSupabaseClient, isSupabaseConfigured } from "./supabase";
 import { mockCategories, mockProducts, mockMovements } from "./mock-data";
 import { AUTH_USERS } from "./auth-users";
+import { computeEstado } from "./product-utils";
 import type { Product, Category, Movement } from "./types";
 import type { AuthUser } from "./auth-users";
-
-function computeEstado(p: {
-  stock_actual: number;
-  stock_minimo: number;
-  fecha_vencimiento?: string | null;
-}): Product["estado"] {
-  if (p.fecha_vencimiento && new Date(p.fecha_vencimiento) < new Date()) return "vencido";
-  if (p.stock_actual === 0) return "agotado";
-  if (p.stock_actual <= p.stock_minimo) return "bajo_stock";
-  return "activo";
-}
 
 export async function dbGetCategories(): Promise<Category[]> {
   if (!isSupabaseConfigured()) return mockCategories;
