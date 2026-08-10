@@ -28,6 +28,7 @@ import { isAreaAccessible } from "@/lib/access";
 import { useUI } from "@/components/layout/ui-context";
 import { logout } from "@/lib/auth-actions";
 import { initials } from "@/lib/format";
+import { PWAInstallButton } from "@/components/pwa-install-button";
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -112,6 +113,7 @@ function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
                 </Link>
               );
             })}
+            {group.label === "Sistema" && <PWAInstallButton />}
           </div>
         ))}
       </nav>
