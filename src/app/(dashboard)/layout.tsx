@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/auth-provider";
 import { UIProvider } from "@/components/layout/ui-context";
 import { CommandPalette } from "@/components/command-palette";
 import { AlertBanner } from "@/components/alert-banner";
+import { BackToTop } from "@/components/ui/back-to-top";
 import { DataProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui/toast";
 import { getSession } from "@/lib/session";
@@ -38,6 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </main>
             </div>
             <CommandPalette />
+            <BackToTop />
           </UIProvider>
         </DataProvider>
       </ToastProvider>

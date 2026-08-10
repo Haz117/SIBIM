@@ -15,12 +15,16 @@ import {
   ArrowUpRight, ArrowDownRight, CurrencyDollar, Pulse, ArrowRight, CheckCircle,
   ChartPieSlice, ChartLine, Plus,
 } from "@phosphor-icons/react";
+import { ArrowsLeftRight, Warning } from "@phosphor-icons/react";
 import { useData } from "@/lib/store";
 import { CategoryIcon } from "@/lib/icon-map";
 import { useAuth } from "@/components/auth-provider";
 import { isAreaAccessible } from "@/lib/access";
 import type { AuthUser } from "@/lib/auth-users";
 import type { Product, Category, Movement } from "@/lib/types";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useCountUp } from "@/hooks/use-count-up";
+import { useRouter } from "next/navigation";
 
 function getGreeting(name: string): string {
   const hour = new Date().getHours();
@@ -91,8 +95,17 @@ function buildStatCards(
   ];
 }
 
+function AnimatedValue({ value }: { value: string | number }) {
+  const numeric = typeof value === "number" ? value : parseFloat(String(value).replace(/[^0-9.]/g, ""))
+  const isNumeric = !isNaN(numeric) && typeof value === "number"
+  const animated = useCountUp(isNumeric ? numeric : 0)
+  if (!isNumeric) return <>{value}</>
+  return <>{animated.toLocaleString()}</>
+}
+
 export default function DashboardPage() {
   const user = useAuth();
+  const router = useRouter();
   const { products, movements, categories } = useData();
 
   const greeting = getGreeting(user.nombre);
@@ -102,6 +115,11 @@ export default function DashboardPage() {
   const STAT_CARDS = buildStatCards(user, scopedProducts, scopedMovements, products, movements, categories);
   const valorPorCategoria = buildValorPorCategoria(scopedProducts, categories);
   const bajosStock = scopedProducts.filter((p) => p.estado === "bajo_stock" || p.estado === "agotado");
+
+  useKeyboardShortcuts([
+    { key: "n", ignoreInputs: true, onTrigger: () => router.push("/productos") },
+    { key: "m", ignoreInputs: true, onTrigger: () => router.push("/movimientos") },
+  ]);
 
   const movimientosSemana = useMemo(() => {
     const today = new Date();
@@ -172,11 +190,34 @@ export default function DashboardPage() {
                       ? <ArrowUpRight className="w-3.5 h-3.5 text-teal-500" />
                       : <ArrowDownRight className="w-3.5 h-3.5 text-amber-500" />}
                   </div>
-                  <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+                  <p className="text-2xl font-bold text-foreground leading-none"><AnimatedValue value={value} /></p>
                   <p className="text-xs mt-1.5 text-muted-foreground">{label}</p>
                   <p className="text-xs mt-1 font-medium" style={{ color: up ? "#14B8A6" : "#F59E0B" }}>{change}</p>
                 </CardContent>
               </Card>
+            </Link>
+          ))}
+        </div>
+
+        {/* Quick actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { label: "Nuevo bien", icon: Plus, href: "/productos", color: "#7C3AED", bg: "rgba(124,58,237,0.12)", hint: "N" },
+            { label: "Registrar movimiento", icon: ArrowsLeftRight, href: "/movimientos", color: "#10B981", bg: "rgba(16,185,129,0.12)", hint: "M" },
+            { label: "Ver alertas", icon: Warning, href: "/alertas", color: "#F59E0B", bg: "rgba(245,158,11,0.12)", hint: null },
+          ].map(({ label, icon: Icon, href, color, bg, hint }) => (
+            <Link key={label} href={href}
+              className="flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/20 hover:bg-accent/60 hover:shadow-sm transition-all group animate-in fade-in slide-in-from-bottom-1"
+              style={{ background: "var(--card)" }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110" style={{ background: bg }}>
+                <Icon className="w-4 h-4" style={{ color }} weight="duotone" />
+              </div>
+              <span className="text-sm font-medium text-foreground flex-1">{label}</span>
+              {hint && (
+                <kbd className="hidden sm:flex text-[10px] border border-border rounded px-1.5 py-0.5 bg-muted text-muted-foreground font-mono">
+                  {hint}
+                </kbd>
+              )}
             </Link>
           ))}
         </div>

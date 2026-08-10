@@ -449,6 +449,23 @@ export default function MovimientosPage() {
                 )}
               </div>
             )}
+            {filtered.length > 0 && (
+              <div className="px-4 py-2.5 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-muted/30">
+                <span>{filtered.length} movimiento{filtered.length !== 1 ? "s" : ""} filtrados</span>
+                <div className="flex items-center gap-4">
+                  {(["entrada", "salida"] as MovementType[]).map((tipo) => {
+                    const total = filtered.filter((m) => m.tipo === tipo).reduce((s, m) => s + m.cantidad, 0);
+                    if (!total) return null;
+                    const cfg = TIPO_CONFIG[tipo];
+                    return (
+                      <span key={tipo} className="font-medium" style={{ color: cfg.hex }}>
+                        {cfg.label}s: {total.toLocaleString()}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <Pagination
               total={filtered.length}
               page={page}

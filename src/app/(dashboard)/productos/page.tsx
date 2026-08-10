@@ -23,6 +23,7 @@ import {
 import {
   MagnifyingGlass, Plus, PencilSimple, Trash, Eye,
   Package, Upload, WarningCircle, DownloadSimple, X, SpinnerGap,
+  SquaresFour, Rows, Copy,
 } from "@phosphor-icons/react";
 import { CategoryIcon } from "@/lib/icon-map";
 import { ALL_AREA_NAMES } from "@/lib/areas-list";
@@ -97,6 +98,8 @@ function ProductosContent() {
   const exportMenuRef = useDismissableMenu<HTMLDivElement>(exportOpen, closeExport);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  const [duplicateSource, setDuplicateSource] = useState<Product | null>(null);
   const openedViewRef = useRef<string | null>(null);
 
   function toggleSort(field: string) {
@@ -190,6 +193,11 @@ function ProductosContent() {
       : undefined);
   }
 
+  function handleDuplicate(product: Product) {
+    setDuplicateSource(product);
+    setOpenAdd(true);
+  }
+
   function handleExportCSV() {
     const headers = ["Nombre", "Código", "Categoría", "Área", "Stock", "Mín.", "Valor", "Estado", "Proveedor", "Ubicación"];
     const rows = filtered.map((p) => [
@@ -238,6 +246,25 @@ function ProductosContent() {
                   </button>
                 )}
               </div>
+              {/* View toggle */}
+              <div className="hidden sm:flex items-center border border-border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  aria-label="Vista tabla"
+                  className={`h-9 w-9 flex items-center justify-center transition-colors ${viewMode === "table" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Rows className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  aria-label="Vista cuadrícula"
+                  className={`h-9 w-9 flex items-center justify-center transition-colors ${viewMode === "grid" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  <SquaresFour className="w-4 h-4" />
+                </button>
+              </div>
               {/* Export buttons */}
               <Button
                 variant="outline"
@@ -277,7 +304,7 @@ function ProductosContent() {
                   </div>
                 )}
               </div>
-              <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+              <Dialog open={openAdd} onOpenChange={(o) => { if (!o) { setOpenAdd(false); setDuplicateSource(null); } }}>
                 <DialogTrigger render={
                   <Button className="h-9 gap-2 shrink-0 text-primary-foreground" style={{ background: "var(--primary)" }} />
                 }>
@@ -285,13 +312,19 @@ function ProductosContent() {
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl border-border text-foreground" style={{ background: "var(--card)" }}>
                   <DialogHeader>
-                    <DialogTitle className="text-foreground">Nuevo Bien</DialogTitle>
+                    <DialogTitle className="text-foreground">{duplicateSource ? "Duplicar Bien" : "Nuevo Bien"}</DialogTitle>
                   </DialogHeader>
                   <ProductForm
                     user={user}
                     categories={categories}
-                    onClose={() => setOpenAdd(false)}
-                    onSaved={() => toast("Bien registrado correctamente")}
+                    product={duplicateSource ? {
+                      ...duplicateSource,
+                      id: "",
+                      nombre: `${duplicateSource.nombre} (copia)`,
+                      codigo: `${duplicateSource.codigo}-COPIA`,
+                    } as Product : undefined}
+                    onClose={() => { setOpenAdd(false); setDuplicateSource(null); }}
+                    onSaved={() => { toast("Bien registrado en el inventario"); setDuplicateSource(null); }}
                   />
                 </DialogContent>
               </Dialog>
@@ -360,7 +393,72 @@ function ProductosContent() {
           </CardContent>
         </Card>
 
+        {/* Grid view */}
+        {viewMode === "grid" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {paginated.map((product, i) => (
+              <div key={product.id}
+                className="rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 animate-in fade-in cursor-pointer group"
+                style={{ background: "var(--card)", animationDelay: `${Math.min(i, 12) * 30}ms`, animationFillMode: "backwards" }}
+                onClick={() => setViewTarget(product)}>
+                <div className="h-32 flex items-center justify-center"
+                  style={{ background: product.foto_url ? "transparent" : "var(--muted)" }}>
+                  {product.foto_url
+                    ? <img src={product.foto_url} alt={product.nombre} className="w-full h-full object-cover" />
+                    : <CategoryIcon name={product.categoria?.icono} className="w-10 h-10 text-muted-foreground/40" />}
+                </div>
+                <div className="p-3">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="font-semibold text-sm text-foreground leading-tight line-clamp-2">{product.nombre}</p>
+                    <Badge className={`text-[10px] flex-shrink-0 ${STATUS_CONFIG[product.estado].className}`}>
+                      {STATUS_CONFIG[product.estado].label}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground mb-2">{product.codigo}</p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className={`font-bold ${product.estado === "agotado" ? "text-rose-500" : product.estado === "bajo_stock" ? "text-amber-500" : "text-foreground"}`}>
+                      {product.stock_actual} {product.unidad}
+                    </span>
+                    <span className="text-muted-foreground">${product.precio_venta.toLocaleString("es-MX", { minimumFractionDigits: 0 })}</span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent flex-1" aria-label={`Editar ${product.nombre}`}
+                      onClick={() => setEditTarget(product)}>
+                      <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent flex-1" aria-label={`Duplicar ${product.nombre}`}
+                      onClick={() => handleDuplicate(product)}>
+                      <Copy className="w-3.5 h-3.5" weight="duotone" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-rose-500/10 hover:text-rose-500 flex-1" aria-label={`Eliminar ${product.nombre}`}
+                      onClick={() => setDeleteId(product.id)}>
+                      <Trash className="w-3.5 h-3.5" weight="duotone" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="col-span-full text-center py-16 flex flex-col items-center gap-3">
+                <Package className="w-12 h-12 text-muted-foreground/40" weight="duotone" />
+                {scopedProducts.length === 0 ? (
+                  <>
+                    <p className="text-sm font-medium text-foreground">Aún no hay bienes registrados</p>
+                    <p className="text-xs text-muted-foreground">Agrega el primer bien patrimonial para comenzar el inventario</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-foreground">No se encontraron bienes</p>
+                    {hasFilters && <button type="button" onClick={() => { setSearch(""); setFilterCat("todas"); setFilterStatus("todos"); setFilterArea("todas"); }} className="text-xs text-primary hover:underline font-medium">Limpiar filtros</button>}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Table */}
+        {viewMode === "table" && (
         <Card className="border-border hover:shadow-md transition-shadow" style={{ background: "var(--card)" }}>
           <CardContent className="p-0">
             {/* Mobile card list */}
@@ -400,6 +498,11 @@ function ProductosContent() {
                           aria-label={`Ver ${product.nombre}`}
                           onClick={() => setViewTarget(product)}>
                           <Eye className="w-3.5 h-3.5" weight="duotone" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent text-muted-foreground hover:text-primary"
+                          aria-label={`Duplicar ${product.nombre}`}
+                          onClick={() => handleDuplicate(product)}>
+                          <Copy className="w-3.5 h-3.5" weight="duotone" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-accent text-muted-foreground hover:text-primary"
                           aria-label={`Editar ${product.nombre}`}
@@ -498,6 +601,11 @@ function ProductosContent() {
                             <Eye className="w-3.5 h-3.5" weight="duotone" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent text-muted-foreground hover:text-primary"
+                            aria-label={`Duplicar ${product.nombre}`}
+                            onClick={(e) => { e.stopPropagation(); handleDuplicate(product); }}>
+                            <Copy className="w-3.5 h-3.5" weight="duotone" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-accent text-muted-foreground hover:text-primary"
                             aria-label={`Editar ${product.nombre}`}
                             onClick={() => setEditTarget(product)}>
                             <PencilSimple className="w-3.5 h-3.5" weight="duotone" />
@@ -559,6 +667,7 @@ function ProductosContent() {
             />
           </CardContent>
         </Card>
+        )}
       </div>
 
       {/* Edit dialog */}
