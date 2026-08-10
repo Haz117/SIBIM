@@ -185,8 +185,14 @@ export default function MovimientosPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por producto o referencia..."
-                  className="pl-10 h-9 bg-muted/60 border-border text-foreground placeholder:text-muted-foreground"
+                  className="pl-10 pr-8 h-9 bg-muted/60 border-border text-foreground placeholder:text-muted-foreground"
                 />
+                {search && (
+                  <button type="button" onClick={() => setSearch("")} aria-label="Limpiar búsqueda"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
               <Button variant="outline" size="sm" onClick={handleExportCSV}
                 disabled={filtered.length === 0}

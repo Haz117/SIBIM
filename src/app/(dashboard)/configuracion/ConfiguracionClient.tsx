@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import {
   UserCircle, Palette, ShieldCheck, Info, Crown, Briefcase, Envelope, SignOut,
   Sun, Moon, Desktop, Camera, PencilSimple, Check, X, ArrowCounterClockwise,
-  WarningOctagon, UserPlus, Trash, Key, PencilLine,
+  WarningOctagon, UserPlus, Trash, Key, PencilLine, SpinnerGap,
 } from "@phosphor-icons/react"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/components/auth-provider"
@@ -69,6 +69,8 @@ export function ConfiguracionClient({
   const [confirmReset, setConfirmReset] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState(profileName ?? currentUser.nombre)
+  const [nameSaved, setNameSaved] = useState(false)
+  const [avatarLoading, setAvatarLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [mounted, setMounted] = useState(false)
@@ -85,7 +87,8 @@ export function ConfiguracionClient({
     const trimmed = nameInput.trim()
     if (trimmed && trimmed !== (profileName ?? currentUser.nombre)) {
       setProfileName(trimmed)
-      toast("Nombre actualizado correctamente")
+      setNameSaved(true)
+      setTimeout(() => setNameSaved(false), 2000)
     }
     setEditingName(false)
   }
@@ -98,6 +101,7 @@ export function ConfiguracionClient({
       e.target.value = ""
       return
     }
+    setAvatarLoading(true)
     try {
       const url = await compressImage(file, 320, 0.85)
       setAvatarUrl(url)
@@ -105,6 +109,7 @@ export function ConfiguracionClient({
     } catch {
       toast("No se pudo procesar la imagen. Intenta con otro archivo.", "error")
     } finally {
+      setAvatarLoading(false)
       e.target.value = ""
     }
   }
@@ -233,25 +238,28 @@ export function ConfiguracionClient({
               <div className="relative flex-shrink-0 group">
                 <div
                   className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-primary-foreground text-lg font-bold cursor-pointer ring-2 ring-primary/20 group-hover:ring-primary/60 transition-all"
-                  style={{ background: avatarUrl ? "transparent" : "var(--primary)" }}
-                  onClick={() => fileRef.current?.click()}
+                  style={{ background: avatarUrl && !avatarLoading ? "transparent" : "var(--primary)" }}
+                  onClick={() => !avatarLoading && fileRef.current?.click()}
                   title="Cambiar foto"
                 >
-                  {avatarUrl
+                  {avatarLoading
+                    ? <SpinnerGap className="w-6 h-6 animate-spin" />
+                    : avatarUrl
                     ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     : initials(currentUser.nombre)
                   }
                 </div>
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground shadow-md border-2 border-card transition-transform group-hover:scale-110"
+                  onClick={() => !avatarLoading && fileRef.current?.click()}
+                  disabled={avatarLoading}
+                  className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center text-primary-foreground shadow-md border-2 border-card transition-transform group-hover:scale-110 disabled:opacity-50"
                   style={{ background: "var(--primary)" }}
                   title="Cambiar foto"
                 >
                   <Camera className="w-3 h-3" />
                 </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={avatarLoading} />
               </div>
 
               <div className="min-w-0 flex-1">
@@ -278,10 +286,16 @@ export function ConfiguracionClient({
                   ) : (
                     <div className="flex items-center gap-1.5 group/name">
                       <p className="font-semibold text-foreground">{profileName ?? currentUser.nombre}</p>
-                      <button type="button" onClick={() => setEditingName(true)}
-                        className="opacity-0 group-hover/name:opacity-100 transition-opacity w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground">
-                        <PencilSimple className="w-3 h-3" />
-                      </button>
+                      {nameSaved ? (
+                        <span className="text-[11px] text-teal-500 font-medium animate-in fade-in duration-200 flex items-center gap-0.5">
+                          <Check className="w-3 h-3" weight="bold" /> Guardado
+                        </span>
+                      ) : (
+                        <button type="button" onClick={() => setEditingName(true)}
+                          className="opacity-0 group-hover/name:opacity-100 transition-opacity w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground">
+                          <PencilSimple className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   )}
                   {currentUser.role === "admin" && (
