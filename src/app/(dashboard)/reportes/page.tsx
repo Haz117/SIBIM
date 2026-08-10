@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import {
   FilePdf, FileXls, CalendarBlank,
-  TrendUp, Package, Warning, CurrencyDollar, Buildings,
+  TrendUp, Package, Warning, CurrencyDollar, Buildings, SpinnerGap,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 import { useData } from "@/lib/store";
@@ -51,6 +51,7 @@ export default function ReportesPage() {
   const [periodo, setPeriodo] = useState("Este mes");
   const [fechaInicio, setFechaInicio] = useState("");
   const [fechaFin, setFechaFin] = useState("");
+  const [exporting, setExporting] = useState<string | null>(null);
 
   // Todos los reportes se generan solo con los bienes/movimientos del alcance del usuario.
   const products = user.role === "admin" ? allProducts : allProducts.filter((p) => isAreaAccessible(user, p.area));
@@ -81,6 +82,12 @@ export default function ReportesPage() {
   const label = periodoLabel(periodo, fechaInicio, fechaFin);
 
   // ── Report generators ────────────────────────────────────────────────────
+
+  const withExport = useCallback((id: string, fn: () => void) => {
+    if (exporting) return;
+    setExporting(id);
+    setTimeout(() => { try { fn(); } finally { setExporting(null); } }, 60);
+  }, [exporting]);
 
   function genInventarioGeneral(format: "pdf" | "excel") {
     const headers = ["Nombre", "Código", "Categoría", "Área", "Stock", "Mín.", "Valor Actual ($)", "Estado", "Proveedor", "Ubicación"];
@@ -195,49 +202,56 @@ export default function ReportesPage() {
       desc: "Lista completa de bienes patrimoniales con existencias y valores actuales",
       icon: Package, color: "#7C3AED", bg: "rgba(124,58,237,0.15)", tag: "Auditoría",
       count: `${products.length} bienes`,
-      onPdf: () => genInventarioGeneral("pdf"), onExcel: () => genInventarioGeneral("excel"),
+      onPdf: () => withExport("inventario_general_pdf", () => genInventarioGeneral("pdf")),
+      onExcel: () => withExport("inventario_general_xls", () => genInventarioGeneral("excel")),
     },
     {
       id: "bienes_por_area", title: "Bienes por Área",
       desc: "Distribución de bienes patrimoniales por secretaría y dirección responsable",
       icon: Buildings, color: "#EC4899", bg: "rgba(236,72,153,0.15)", tag: "Patrimonial",
       count: `${new Set(products.map((p) => p.area)).size} áreas`,
-      onPdf: () => genBienesPorArea("pdf"), onExcel: () => genBienesPorArea("excel"),
+      onPdf: () => withExport("bienes_area_pdf", () => genBienesPorArea("pdf")),
+      onExcel: () => withExport("bienes_area_xls", () => genBienesPorArea("excel")),
     },
     {
       id: "movimientos", title: "Reporte de Movimientos",
       desc: "Historial de entradas, salidas y ajustes por período",
       icon: TrendUp, color: "#10B981", bg: "rgba(16,185,129,0.15)", tag: "Trazabilidad",
       count: `${filteredMovements.length} movs.`,
-      onPdf: () => genMovimientos("pdf"), onExcel: () => genMovimientos("excel"),
+      onPdf: () => withExport("movimientos_pdf", () => genMovimientos("pdf")),
+      onExcel: () => withExport("movimientos_xls", () => genMovimientos("excel")),
     },
     {
       id: "stock_bajo", title: "Alertas de Stock",
       desc: "Productos con stock bajo o agotados que requieren reabastecimiento",
       icon: Warning, color: "#F59E0B", bg: "rgba(245,158,11,0.15)", tag: "Operativo",
       count: `${products.filter((p) => p.estado !== "activo").length} alertas`,
-      onPdf: () => genStockBajo("pdf"), onExcel: () => genStockBajo("excel"),
+      onPdf: () => withExport("stock_bajo_pdf", () => genStockBajo("pdf")),
+      onExcel: () => withExport("stock_bajo_xls", () => genStockBajo("excel")),
     },
     {
       id: "valoracion", title: "Valoración de Inventario",
       desc: "Valor económico del inventario por categoría y total",
       icon: CurrencyDollar, color: "#3B82F6", bg: "rgba(59,130,246,0.15)", tag: "Financiero",
       count: `$${stockPorCategoria.reduce((s, c) => s + c.valor, 0).toLocaleString("es-MX", { maximumFractionDigits: 0 })}`,
-      onPdf: () => genValoracion("pdf"), onExcel: () => genValoracion("excel"),
+      onPdf: () => withExport("valoracion_pdf", () => genValoracion("pdf")),
+      onExcel: () => withExport("valoracion_xls", () => genValoracion("excel")),
     },
     {
       id: "auditoria", title: "Reporte de Auditoría",
       desc: "Informe completo para auditorías del estado: movimientos, ajustes y responsables",
       icon: FilePdf, color: "#EF4444", bg: "rgba(239,68,68,0.15)", tag: "Estado",
       count: `${filteredMovements.length} registros`,
-      onPdf: () => genAuditoria("pdf"), onExcel: () => genAuditoria("excel"),
+      onPdf: () => withExport("auditoria_pdf", () => genAuditoria("pdf")),
+      onExcel: () => withExport("auditoria_xls", () => genAuditoria("excel")),
     },
     {
       id: "vencimientos", title: "Garantías por Vencer",
       desc: "Bienes con garantía próxima a vencer en los próximos 30 días",
       icon: CalendarBlank, color: "#A78BFA", bg: "rgba(167,139,250,0.15)", tag: "Control",
       count: `${products.filter((p) => { if (!p.fecha_vencimiento) return false; const d = Math.ceil((new Date(p.fecha_vencimiento).getTime() - now) / 86400000); return d <= 30; }).length} bienes`,
-      onPdf: () => genVencimientos("pdf"), onExcel: () => genVencimientos("excel"),
+      onPdf: () => withExport("vencimientos_pdf", () => genVencimientos("pdf")),
+      onExcel: () => withExport("vencimientos_xls", () => genVencimientos("excel")),
     },
   ];
 
@@ -362,14 +376,20 @@ export default function ReportesPage() {
                   <h3 className="font-semibold text-foreground text-sm mb-1">{title}</h3>
                   <p className="text-xs leading-relaxed mb-4 text-muted-foreground">{desc}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={onPdf}
+                    <Button size="sm" onClick={onPdf} disabled={!!exporting}
                       className="flex-1 h-8 text-xs gap-1.5"
                       style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
-                      <FilePdf className="w-3.5 h-3.5" /> PDF
+                      {exporting === `${id}_pdf`
+                        ? <SpinnerGap className="w-3.5 h-3.5 animate-spin" />
+                        : <FilePdf className="w-3.5 h-3.5" />}
+                      PDF
                     </Button>
-                    <Button size="sm" variant="outline" onClick={onExcel}
+                    <Button size="sm" variant="outline" onClick={onExcel} disabled={!!exporting}
                       className="flex-1 h-8 text-xs gap-1.5 border-border text-muted-foreground hover:bg-accent hover:text-foreground">
-                      <FileXls className="w-3.5 h-3.5" /> Excel
+                      {exporting === `${id}_xls`
+                        ? <SpinnerGap className="w-3.5 h-3.5 animate-spin" />
+                        : <FileXls className="w-3.5 h-3.5" />}
+                      Excel
                     </Button>
                   </div>
                 </CardContent>

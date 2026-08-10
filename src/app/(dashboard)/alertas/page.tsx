@@ -30,11 +30,18 @@ export default function AlertasPage() {
   const porVencer = scopedProducts.filter((p) => {
     if (!p.fecha_vencimiento) return false;
     const dias = Math.ceil((new Date(p.fecha_vencimiento).getTime() - now) / 86400000);
-    return dias <= 7 && dias >= 0;
+    return dias <= 7;
   });
 
   function diasRestantes(fecha: string) {
     return Math.ceil((new Date(fecha).getTime() - now) / 86400000);
+  }
+
+  function vencimientoUrgency(dias: number) {
+    if (dias < 0)  return { color: "#F43F5E", bg: "rgba(244,63,94,0.12)", border: "rgba(244,63,94,0.25)", label: "Vencido" };
+    if (dias === 0) return { color: "#F97316", bg: "rgba(249,115,22,0.12)", border: "rgba(249,115,22,0.25)", label: "Vence hoy" };
+    if (dias <= 2)  return { color: "#F59E0B", bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.25)", label: `${dias}d restantes` };
+    return          { color: "#A78BFA", bg: "rgba(167,139,250,0.12)", border: "rgba(167,139,250,0.25)", label: `${dias}d restantes` };
   }
 
   const sections = [
@@ -146,20 +153,24 @@ export default function AlertasPage() {
                     {items.map((product) => {
                       const pct = product.stock_maximo > 0 ? (product.stock_actual / product.stock_maximo) * 100 : 0;
                       const dias = product.fecha_vencimiento ? diasRestantes(product.fecha_vencimiento) : null;
+                      const urgency = isVencimiento && dias !== null ? vencimientoUrgency(dias) : null;
+                      const itemBg = urgency?.bg ?? bg;
+                      const itemBorder = urgency?.border ?? border;
+                      const itemColor = urgency?.color ?? color;
                       return (
                         <div key={product.id} className="flex items-center gap-4 p-3 rounded-xl border transition-all hover:shadow-sm"
-                          style={{ background: bg, borderColor: border }}>
+                          style={{ background: itemBg, borderColor: itemBorder }}>
                           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                             style={{ background: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>
-                            <CategoryIcon name={product.categoria?.icono} className="w-4.5 h-4.5" style={{ color }} />
+                            <CategoryIcon name={product.categoria?.icono} className="w-4.5 h-4.5" style={{ color: itemColor }} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <p className="font-medium text-foreground text-sm truncate">{product.nombre}</p>
                               <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                                 {isVencimiento ? (
-                                  <span className="text-xs font-bold" style={{ color }}>
-                                    {dias === 0 ? "Vence hoy" : `${dias}d restantes`}
+                                  <span className="text-xs font-bold" style={{ color: dias !== null ? vencimientoUrgency(dias).color : color }}>
+                                    {dias !== null ? vencimientoUrgency(dias).label : "—"}
                                   </span>
                                 ) : (
                                   <span className="text-xs font-bold" style={{ color }}>
@@ -171,8 +182,8 @@ export default function AlertasPage() {
                                   onClick={() => restock ? setRestockTarget(product) : router.push(`/productos?view=${product.id}`)}
                                   aria-label={`${action} ${product.nombre}`}
                                   className="inline-flex items-center gap-1.5 h-9 px-3 text-xs font-medium rounded-lg text-white transition-all active:scale-95"
-                                  style={{ background: color }}
-                                  onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.15)"; e.currentTarget.style.boxShadow = `0 2px 8px ${color}55`; }}
+                                  style={{ background: itemColor }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.filter = "brightness(1.15)"; e.currentTarget.style.boxShadow = `0 2px 8px ${itemColor}55`; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.filter = ""; e.currentTarget.style.boxShadow = ""; }}
                                 >
                                   <ActionIcon className="w-3 h-3" weight="bold" />
@@ -190,7 +201,7 @@ export default function AlertasPage() {
                             ) : (
                               <>
                                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "color-mix(in srgb, var(--foreground) 15%, transparent)" }}>
-                                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: color }} />
+                                  <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(pct, 100)}%`, background: itemColor }} />
                                 </div>
                                 <div className="flex justify-between mt-1">
                                   <span className="text-xs text-muted-foreground">{product.proveedor}</span>

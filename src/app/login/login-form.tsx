@@ -65,6 +65,7 @@ export function LoginForm() {
   const [showDemo, setShowDemo] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [touched, setTouched] = useState({ username: false, password: false });
   const [errorKey, setErrorKey] = useState(0);
   const prevErrorRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -123,10 +124,17 @@ export function LoginForm() {
                     name="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, username: true }))}
                     placeholder="usuario@ayuntamiento.gob.mx"
                     autoComplete="username"
-                    className="pl-9 bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50"
+                    className={cn(
+                      "pl-9 bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50",
+                      touched.username && !username && "border-red-500/50 focus-visible:ring-red-500/20"
+                    )}
                   />
+                  {touched.username && !username && (
+                    <p className="text-[10px] text-red-400 mt-1 pl-1">Campo requerido</p>
+                  )}
                 </div>
               </div>
               <div className="space-y-1.5">
@@ -139,10 +147,17 @@ export function LoginForm() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onBlur={() => setTouched((t) => ({ ...t, password: true }))}
                     placeholder="••••••••"
                     autoComplete="current-password"
-                    className="pl-9 pr-10 bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50"
+                    className={cn(
+                      "pl-9 pr-10 bg-muted border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:border-primary/50",
+                      touched.password && !password && "border-red-500/50 focus-visible:ring-red-500/20"
+                    )}
                   />
+                  {touched.password && !password && (
+                    <p className="text-[10px] text-red-400 mt-1 pl-1">Campo requerido</p>
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
